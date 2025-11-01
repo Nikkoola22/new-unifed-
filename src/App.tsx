@@ -137,6 +137,11 @@ const trouverContextePertinent = (question: string): string => {
       }
     })
 
+    // BONUS: Si "forfait" est dans la question et le chapitre est télétravail, bonus +20
+    if ((questionNettoyee.includes("forfait") || motsFinalAvecSynonymes.has("forfait")) && chapitreItem.source === "teletravail") {
+      score += 20
+    }
+
     if (score > 0) {
       const chapitreExistant = chapitresTrouves.get(chapitreId) || { score: 0 }
       chapitreExistant.score += score
