@@ -59,7 +59,7 @@ const nettoyerChaine = (chaine: string): string => {
 
 // --- DICTIONNAIRE DE SYNONYMES ---
 const synonymes: Record<string, string[]> = {
-  "forfait": ["forfait annuel", "jours forfait", "15 jours", "quota annuel"],
+  "forfait": ["forfait annuel", "jours forfait", "15 jours", "quota annuel", "droit jours", "combien jours"],
   "teletravail": ["télétravail", "travail distance", "domicile", "remote"],
   "conge": ["congés", "vacances", "absence", "cp", "autorisation absence"],
   "formation": ["stage", "cours", "cpf", "qualification"],
