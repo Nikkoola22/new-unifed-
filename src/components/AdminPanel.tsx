@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Settings, Users, FileText, Database, Plus, Edit3, Trash2, Save } from 'lucide-react';
+import { X, Settings, Users, FileText, Database, Plus, Edit3, Trash2, Save, Calculator, PieChart, PiggyBank } from 'lucide-react';
 import { infoItems as initialInfoItems } from '../data/info-data';
 
 interface InfoItem {
@@ -10,9 +10,15 @@ interface InfoItem {
 
 interface AdminPanelProps {
   onClose: () => void;
+  showIFSE: boolean;
+  setShowIFSE: (v: boolean) => void;
+  showCIA: boolean;
+  setShowCIA: (v: boolean) => void;
+  show13eme: boolean;
+  setShow13eme: (v: boolean) => void;
 }
 
-export default function AdminPanel({ onClose }: AdminPanelProps) {
+export default function AdminPanel({ onClose, showIFSE, setShowIFSE, showCIA, setShowCIA, show13eme, setShow13eme }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState('settings');
   const [infoItems, setInfoItems] = useState<InfoItem[]>(initialInfoItems);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -97,6 +103,34 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 shadow-lg transition-all duration-200 font-light">
                     Enregistrer les modifications
                   </button>
+
+                  {/* Toggle buttons to control calculator visibility on main Calculateurs page */}
+                  <div className="mt-8 bg-slate-700/20 border border-purple-500/10 rounded-lg p-4">
+                    <h3 className="text-lg text-white font-light mb-3">Visibilité des calculateurs</h3>
+                    <p className="text-sm text-slate-400 mb-4">Gérez l'affichage des calculateurs sur la page "Calculateurs"</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowIFSE(!showIFSE)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${showIFSE ? 'bg-green-600 text-white' : 'bg-slate-700/40 text-slate-200 hover:bg-slate-700/60'}`}
+                      >
+                        <Calculator className="inline w-4 h-4 mr-2" /> IFSE {showIFSE ? '✓' : '✗'}
+                      </button>
+
+                      <button
+                        onClick={() => setShowCIA(!showCIA)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${showCIA ? 'bg-green-600 text-white' : 'bg-slate-700/40 text-slate-200 hover:bg-slate-700/60'}`}
+                      >
+                        <PieChart className="inline w-4 h-4 mr-2" /> CIA {showCIA ? '✓' : '✗'}
+                      </button>
+
+                      <button
+                        onClick={() => setShow13eme(!show13eme)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${show13eme ? 'bg-green-600 text-white' : 'bg-slate-700/40 text-slate-200 hover:bg-slate-700/60'}`}
+                      >
+                        <PiggyBank className="inline w-4 h-4 mr-2" /> 13ème {show13eme ? '✓' : '✗'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

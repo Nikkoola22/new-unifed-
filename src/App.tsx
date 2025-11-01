@@ -235,6 +235,10 @@ function App() {
   const [thirteenContractType, setThirteenContractType] = useState<'fonc' | 'contractuel'>('fonc')
   const [thirteenProfession, setThirteenProfession] = useState<'standard' | 'medecin'>('standard')
   const [showAdminPanel, setShowAdminPanel] = useState(false)
+  // Admin toggles for calculator visibility
+  const [showIFSE, setShowIFSE] = useState(true)
+  const [showCIA, setShowCIA] = useState(true)
+  const [show13eme, setShow13eme] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -791,44 +795,50 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
           {/* If no calculator selected, show 3 icon cards */}
           {activeCalculator === null ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <button
-                onClick={() => setActiveCalculator('primes')}
-                className="calc-card group bg-gradient-to-br from-slate-800/70 to-blue-900/70 p-8 rounded-2xl border border-blue-500/20 hover:scale-105 transform transition shadow-lg text-left"
-              >
-                <div className="flex flex-col items-start gap-4">
-                  <div className="p-4 bg-blue-600/20 rounded-lg">
-                    <Calculator className="w-12 h-12 text-blue-300" />
+              {showIFSE && (
+                <button
+                  onClick={() => setActiveCalculator('primes')}
+                  className="calc-card group bg-gradient-to-br from-slate-800/70 to-blue-900/70 p-8 rounded-2xl border border-blue-500/20 hover:scale-105 transform transition shadow-lg text-left"
+                >
+                  <div className="flex flex-col items-start gap-4">
+                    <div className="p-4 bg-blue-600/20 rounded-lg">
+                      <Calculator className="w-12 h-12 text-blue-300" />
+                    </div>
+                    <h3 className="text-xl font-light text-white">IFSE (Primes)</h3>
+                    <p className="text-sm text-slate-300">Calculateur IFSE 1 & IFSE 2</p>
                   </div>
-                  <h3 className="text-xl font-light text-white">IFSE (Primes)</h3>
-                  <p className="text-sm text-slate-300">Calculateur IFSE 1 & IFSE 2</p>
-                </div>
-              </button>
+                </button>
+              )}
 
-              <button
-                onClick={() => setActiveCalculator('cia')}
-                className="calc-card group bg-gradient-to-br from-slate-800/70 to-orange-900/70 p-8 rounded-2xl border border-orange-500/20 hover:scale-105 transform transition shadow-lg text-left"
-              >
-                <div className="flex flex-col items-start gap-4">
-                  <div className="p-4 bg-orange-600/20 rounded-lg">
-                    <PieChart className="w-12 h-12 text-orange-300" />
+              {showCIA && (
+                <button
+                  onClick={() => setActiveCalculator('cia')}
+                  className="calc-card group bg-gradient-to-br from-slate-800/70 to-orange-900/70 p-8 rounded-2xl border border-orange-500/20 hover:scale-105 transform transition shadow-lg text-left"
+                >
+                  <div className="flex flex-col items-start gap-4">
+                    <div className="p-4 bg-orange-600/20 rounded-lg">
+                      <PieChart className="w-12 h-12 text-orange-300" />
+                    </div>
+                    <h3 className="text-xl font-light text-white">CIA</h3>
+                    <p className="text-sm text-slate-300">Calculatrice CIA / Indemnités</p>
                   </div>
-                  <h3 className="text-xl font-light text-white">CIA</h3>
-                  <p className="text-sm text-slate-300">Calculatrice CIA / Indemnités</p>
-                </div>
-              </button>
+                </button>
+              )}
 
-              <button
-                onClick={() => setActiveCalculator('13eme')}
-                className="calc-card group bg-gradient-to-br from-slate-800/70 to-green-900/70 p-8 rounded-2xl border border-green-500/20 hover:scale-105 transform transition shadow-lg text-left"
-              >
-                <div className="flex flex-col items-start gap-4">
-                  <div className="p-4 bg-green-600/20 rounded-lg">
-                    <PiggyBank className="w-12 h-12 text-green-300" />
+              {show13eme && (
+                <button
+                  onClick={() => setActiveCalculator('13eme')}
+                  className="calc-card group bg-gradient-to-br from-slate-800/70 to-green-900/70 p-8 rounded-2xl border border-green-500/20 hover:scale-105 transform transition shadow-lg text-left"
+                >
+                  <div className="flex flex-col items-start gap-4">
+                    <div className="p-4 bg-green-600/20 rounded-lg">
+                      <PiggyBank className="w-12 h-12 text-green-300" />
+                    </div>
+                    <h3 className="text-xl font-light text-white">13ème mois</h3>
+                    <p className="text-sm text-slate-300">Simulation du 13ème mois et prorata</p>
                   </div>
-                  <h3 className="text-xl font-light text-white">13ème mois</h3>
-                  <p className="text-sm text-slate-300">Simulation du 13ème mois et prorata</p>
-                </div>
-              </button>
+                </button>
+              )}
             </div>
           ) : (
             <div className="w-full bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 backdrop-blur-md border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden">
@@ -1358,7 +1368,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
       </footer>
 
       {/* Admin Panel Modal */}
-      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} showIFSE={showIFSE} setShowIFSE={setShowIFSE} showCIA={showCIA} setShowCIA={setShowCIA} show13eme={show13eme} setShow13eme={setShow13eme} />}
     </div>
   );
 }
