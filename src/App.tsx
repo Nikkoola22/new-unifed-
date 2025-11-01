@@ -16,7 +16,7 @@ import { faqData } from "./data/FAQdata.ts"
 
 
 // --- CONFIGURATION API PERPLEXITY ---
-const BACKEND_API_URL = "http://localhost:3001/api/completions"
+const BACKEND_API_URL = "/api/completions"
 
 // --- RSS ITEM TYPE ---
 interface RssItem {
@@ -145,6 +145,24 @@ const trouverContextePertinent = (question: string): string => {
   })
 
   if (chapitresTrouves.size === 0) {
+    // Si aucun chapitre n'est trouvé, retourner les premiers chapitres comme contexte général
+    const chapitresGeneraux = sommaireData.chapitres.slice(0, 3).map((ch: any) => {
+      const id = ch.idContenu || 1
+      let contenuTexte = null
+      if (ch.source === "teletravail") {
+        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
+      } else if (ch.source === "formation") {
+        contenuTexte = formation || null
+      } else {
+        contenuTexte = (chapitres as Record<number, string>)[id] || null
+      }
+      return contenuTexte ? `Source: ${ch.titre}\nContenu: ${contenuTexte}` : null
+    }).filter(Boolean)
+    
+    if (chapitresGeneraux.length > 0) {
+      return chapitresGeneraux.join("\n\n---\n\n")
+    }
+    
     return (
       "Aucun chapitre spécifique trouvé pour cette question. Voici un aperçu général des thèmes: " +
       sommaireData.chapitres.map((s: any) => s.titre).join(", ")
@@ -492,6 +510,7 @@ function App() {
       }
       
       const result = await response.json()
+      console.log("✅ Réponse Perplexity reçue:", result)
       return result.choices[0].message.content
     } catch (error) {
       console.error("Erreur lors du traitement de la question:", error)
