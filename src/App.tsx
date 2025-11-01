@@ -868,6 +868,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
                     {/* existing primes UI omitted for brevity; kept as before */}
                     {/* Sélection de la catégorie */}
                     <div>
+                      <p className="text-xs text-slate-400 mb-2 italic">Commencez par sélectionner votre catégorie d'emploi (A, B ou C) selon votre grille indiciaire.</p>
                       <label className="block text-base font-light text-slate-300 mb-2">Catégorie</label>
                       <select 
                         value={selectedCategory}
@@ -883,6 +884,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
 
                     {/* Sélection de la fonction (IFSE 1) */}
                     <div>
+                      <p className="text-xs text-slate-400 mb-2 italic">Sélectionnez votre fonction pour calculer la prime IFSE 1 (prime de fonction). La catégorie doit d'abord être choisie.</p>
                       <label className="block text-base font-light text-slate-300 mb-2">Fonction (IFSE 1)</label>
                       <select 
                         value={selectedFunction}
@@ -901,6 +903,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
 
                     {/* Sélection métier (nouveau) */}
                     <div className="mt-3">
+                      <p className="text-xs text-slate-400 mb-2 italic">Sélectionnez votre métier pour auto-compléter les primes IFSE 2 correspondantes. Le métier est optionnel.</p>
                       <label className="block text-sm font-light text-slate-300 mb-2">Métier (optionnel)</label>
                       <select
                         value={selectedJob}
@@ -941,6 +944,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
                     )}
 
                     <div className="mt-4 pt-4 border-t border-blue-500/20">
+                      <p className="text-xs text-slate-400 mb-2 italic">Sélectionnez votre direction pour voir les primes complémentaires (IFSE 2) applicables à votre service.</p>
                       <label className="block text-base font-light text-slate-300 mb-2">Direction (IFSE 2)</label>
                       <select 
                         value={selectedDirection}
@@ -958,6 +962,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
 
                     {selectedDirection && (
                       <div className="mt-4 pt-4 border-t border-blue-500/20">
+                        <p className="text-xs text-slate-400 mb-3 italic">Cochez les primes complémentaires (IFSE 2) applicables à votre situation. Chaque prime correspond à une sujétion ou indemnité spécifique. Les services concernés et métiers sont indiqués pour chaque ligne.</p>
                         <p className="text-sm font-light text-slate-400 mb-3">IFSE 2 - Primes complémentaires (cocher pour inclure)</p>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {getIFSE2ByDirection(selectedDirection).map((prime, idx) => (
@@ -999,6 +1004,7 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
 
                     {/* IFSE3 - Primes week-end */}
                     <div className="mt-4 pt-4 border-t border-blue-500/10">
+                      <p className="text-xs text-slate-400 mb-2 italic">Entrez le nombre moyen de samedis et dimanches travaillés par mois, puis sélectionnez le taux applicable selon le nombre d'heures. Ces primes sont ajoutées au montant mensuel.</p>
                       <label className="block text-base font-light text-slate-300 mb-2">IFSE 3 — Primes week-end</label>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
