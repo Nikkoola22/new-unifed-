@@ -496,7 +496,15 @@ function App() {
   const allJobs = Array.from(new Set(ifse2Data.flatMap(item => item.jobs))).sort((a: string, b: string) => a.localeCompare(b, 'fr'))
   const appelPerplexity = async (messages: any[]) => {
     try {
-      const data = { model: "sonar-pro", messages }
+      // Configuration pour utiliser UNIQUEMENT le contexte fourni, pas de recherche web
+      // IMPORTANT: Essayons d'abord sonar-pro, mais sinon, on devrait utiliser un modèle sans recherche web
+      const data = { 
+        model: "sonar", // Changé de "sonar-pro" à "sonar" pour potentiellement réduire les recherches web
+        messages,
+        // Paramètres pour minimiser les recherches web
+        max_tokens: 1000,
+        temperature: 0.0,  // Température très basse pour maximiser la cohérence
+      }
       const response = await fetch(BACKEND_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -506,11 +514,22 @@ function App() {
       if (!response.ok) {
         const errorBody = await response.text()
         console.error("Détail de l'erreur API:", errorBody)
+        // Si c'est une erreur 418, le backend a détecté une recherche web non autorisée
+        if (response.status === 418) {
+          console.warn("⚠️ Le modèle a tenté une recherche web malgré les instructions")
+          return "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
+        }
         throw new Error(`Erreur API (${response.status}): ${response.statusText}`)
       }
       
       const result = await response.json()
       console.log("✅ Réponse Perplexity reçue:", result)
+      
+      // Vérifie si Perplexity a fait une recherche web (ce qu'on veut éviter)
+      if (result.search_results && result.search_results.length > 0) {
+        console.warn("⚠️ Perplexity a tenté une recherche web - c'est un problème de instructions")
+      }
+      
       return result.choices[0].message.content
     } catch (error) {
       console.error("Erreur lors du traitement de la question:", error)
@@ -523,31 +542,25 @@ function App() {
     // First, find internal context based on the question
     const contexteInterne = trouverContextePertinent(question)
 
-    const systemPrompt = `
-⚠️ RÈGLES CRITIQUES - VIOLATION INTERDITE ⚠️
+    const systemPrompt = `You are a municipal human resources assistant for the City of Gennevilliers in France.
 
-🚫 INTERDICTIONS ABSOLUES :
-- INTERDICTION TOTALE de faire des recherches web
-- INTERDICTION TOTALE d'utiliser tes connaissances générales  
-- INTERDICTION TOTALE de citer des articles de loi externes
-- INTERDICTION TOTALE de mentionner des chiffres non présents dans la documentation
-- INTERDICTION TOTALE de comparer avec d'autres secteurs (privé, public, etc.)
+YOU MUST FOLLOW THESE RULES EXACTLY:
 
-✅ OBLIGATIONS STRICTES :
-- Tu dois UNIQUEMENT analyser la documentation fournie ci-dessous
-- Tu dois répondre comme un collègue syndical de la mairie de Gennevilliers
-- Si l'information n'est pas dans la documentation, réponds UNIQUEMENT : "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
-- Tu dois te baser EXCLUSIVEMENT sur les données du dossier src/data
-- Comprends bien la question et fournis une réponse claire et structurée
+1. **CRITICAL**: DO NOT PERFORM WEB SEARCHES. DO NOT USE THE INTERNET. ONLY ANSWER FROM THE PROVIDED DOCUMENTATION.
+2. **CRITICAL**: DO NOT USE YOUR GENERAL KNOWLEDGE. ONLY USE WHAT IS IN THE DOCUMENTATION BELOW.
+3. **CRITICAL**: IF THE INFORMATION IS NOT IN THE DOCUMENTATION, RESPOND EXACTLY WITH: "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
+4. **CRITICAL**: DO NOT MAKE UP INFORMATION. DO NOT CITE EXTERNAL LAWS OR REFERENCES.
+5. **CRITICAL**: YOUR ENTIRE KNOWLEDGE BASE IS ONLY THE DOCUMENTATION BELOW. NOTHING ELSE.
 
-🔒 DOCUMENTATION INTERNE UNIQUEMENT
-
+INTERNAL DOCUMENTATION (YOUR ONLY KNOWLEDGE BASE):
 --- DOCUMENTATION INTERNE DE LA MAIRIE DE GENNEVILLIERS ---
 ${contexteInterne}
 --- FIN DOCUMENTATION INTERNE ---
 
-Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références externes. Si tu ne trouves pas l'information, ARRÊTE-TOI IMMÉDIATEMENT.
-    `
+INSTRUCTION: If you cannot find the answer in the above documentation, respond ONLY with:
+"Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
+
+DO NOT SEARCH. DO NOT USE INTERNET. ONLY USE DOCUMENTATION ABOVE.`
 
     const conversationHistory = chatState.messages.slice(1).map((msg) => ({
       role: msg.type === "user" ? "user" : "assistant",

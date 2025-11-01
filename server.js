@@ -71,7 +71,25 @@ app.post('/api/completions', async (req, res) => {
     }
 
     const data = await response.json();
-    console.log('✅ Réponse Perplexity reçue');
+    console.log('✅ Réponse Perplexity reçue:', JSON.stringify(data, null, 2));
+    
+    // 🚨 PROBLÈME DÉTECTÉ : Perplexity a tenté une recherche web
+    // C'est contraire à nos instructions. Rejete la réponse.
+    if (data.search_results && data.search_results.length > 0) {
+      console.log('🚨 ERREUR : Perplexity a tenté une recherche web malgré les instructions !');
+      console.log('⚠️ Cela signifie que sonar-pro ignore nos instructions de ne pas chercher sur le web.');
+      console.log('💡 Solution : Utiliser un modèle différent qui n\'utilise pas internet.');
+      // Retourne une erreur 418 (I\'m a teapot - une réponse appropriée pour cette situation)
+      return res.status(418).json({ 
+        error: "Model refused to follow instructions",
+        message: "Le modèle sonar-pro a ignoré les instructions et a tenté une recherche web. Cette réponse n'est pas fiable.",
+        details: {
+          search_results_count: data.search_results.length,
+          citations_count: data.citations?.length || 0
+        }
+      });
+    }
+    
     res.status(200).json(data);
 
   } catch (error) {
