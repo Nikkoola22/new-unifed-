@@ -8,7 +8,7 @@ import { chapitres } from "./data/temps.ts"
 import { formation } from "./data/formation.ts"
 import { teletravailData } from "./data/teletravail.ts"
 import { infoItems } from "./data/info-data.ts"
-import { ifse1Data, getAllDirections, getIFSE2ByDirection, getDirectionFullName } from "./data/rifseep-data.ts"
+import { ifse1Data, ifse2Data, getAllDirections, getIFSE2ByDirection, getDirectionFullName } from "./data/rifseep-data.ts"
 import { franceInfoRss } from "./data/rss-data.ts"
 import AdminPanel from "./components/AdminPanel.tsx"
 import CalculateurCIA from "./components/CalculateurCIA.tsx"
@@ -216,6 +216,8 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedFunction, setSelectedFunction] = useState<string>("")
   const [selectedDirection, setSelectedDirection] = useState<string>("")
+  const [selectedJob, setSelectedJob] = useState<string>("")
+  const [matchedJobDirections, setMatchedJobDirections] = useState<string[]>([])
   const [calculatedPrime, setCalculatedPrime] = useState<{ annual: number; monthly: number }>({ annual: 0, monthly: 0 })
   const [selectedIFSE2, setSelectedIFSE2] = useState<Set<number>>(new Set())
   const [activeCalculator, setActiveCalculator] = useState<'primes' | 'cia' | '13eme' | null>(null)
@@ -351,6 +353,77 @@ function App() {
     }
   }
 
+  const handleJobChange = (jobTitle: string) => {
+    setSelectedJob(jobTitle)
+    setMatchedJobDirections([])
+
+    if (!jobTitle) {
+      // clear selection if no job
+      setSelectedIFSE2(new Set())
+      setSelectedDirection("")
+      return
+    }
+
+    // If a direction is already selected, only toggle IFSE2 entries in that direction
+    if (selectedDirection) {
+      const list = getIFSE2ByDirection(selectedDirection)
+      const newSet = new Set<number>()
+      list.forEach((p, idx) => {
+        if (p.jobs.some(j => j.toLowerCase().includes(jobTitle.toLowerCase()))) {
+          newSet.add(idx)
+        }
+      })
+      setSelectedIFSE2(newSet)
+      return
+    }
+
+    // Find all directions that contain this job
+    const matches = ifse2Data
+      .filter(item => item.jobs.some(j => j.toLowerCase().includes(jobTitle.toLowerCase())))
+      .map(m => m.direction)
+      .filter((v, i, a) => a.indexOf(v) === i) // unique
+
+    if (matches.length === 0) {
+      // no match — clear
+      setSelectedDirection("")
+      setSelectedIFSE2(new Set())
+      return
+    }
+
+    if (matches.length === 1) {
+      // single match — set direction and select matching IFSE2 entries
+      const dir = matches[0]
+      setSelectedDirection(dir)
+      const list = getIFSE2ByDirection(dir)
+      const newSet = new Set<number>()
+      list.forEach((p, idx) => {
+        if (p.jobs.some(j => j.toLowerCase().includes(jobTitle.toLowerCase()))) {
+          newSet.add(idx)
+        }
+      })
+      setSelectedIFSE2(newSet)
+      return
+    }
+
+    // Multiple possible directions — ask the user to choose
+    setMatchedJobDirections(matches)
+    setSelectedIFSE2(new Set())
+  }
+
+  const handleChooseJobDirection = (direction: string) => {
+    setSelectedDirection(direction)
+    // compute indices for that direction matching the selectedJob
+    const list = getIFSE2ByDirection(direction)
+    const newSet = new Set<number>()
+    list.forEach((p, idx) => {
+      if (selectedJob && p.jobs.some(j => j.toLowerCase().includes(selectedJob.toLowerCase()))) {
+        newSet.add(idx)
+      }
+    })
+    setSelectedIFSE2(newSet)
+    setMatchedJobDirections([])
+  }
+
   const handleDirectionChange = (direction: string) => {
     setSelectedDirection(direction)
     setSelectedIFSE2(new Set()) // Reset IFSE 2 selections when changing direction
@@ -396,6 +469,9 @@ function App() {
   const ifse3SatTotal = (Number(weekendSaturdays) || 0) * (Number(weekendRateSat) || 0)
   const ifse3SunTotal = (Number(weekendSundays) || 0) * (Number(weekendRateSun) || 0)
   const ifse3Total = ifse3SatTotal + ifse3SunTotal
+
+  // all métiers from IFSE2 (unique, sorted)
+  const allJobs = Array.from(new Set(ifse2Data.flatMap(item => item.jobs))).sort((a: string, b: string) => a.localeCompare(b, 'fr'))
   const appelPerplexity = async (messages: any[]) => {
     try {
       const data = { model: "sonar-pro", messages }
@@ -811,6 +887,38 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Sélection métier (nouveau) */}
+                    <div className="mt-3">
+                      <label className="block text-sm font-light text-slate-300 mb-2">Métier (optionnel)</label>
+                      <select
+                        value={selectedJob}
+                        onChange={(e) => handleJobChange(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-700/50 border border-blue-500/30 rounded-lg text-white text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/50 outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">Sélectionner un métier</option>
+                        {allJobs.map((job) => (
+                          <option key={job} value={job}>{job}</option>
+                        ))}
+                      </select>
+
+                      {/* If a métier matches multiple directions, let the user choose which direction applies */}
+                      {matchedJobDirections.length > 0 && (
+                        <div className="mt-2">
+                          <label className="block text-xs text-slate-300 mb-1">Choisissez la direction correspondant au métier</label>
+                          <select
+                            value={selectedDirection}
+                            onChange={(e) => handleChooseJobDirection(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700/60 border border-blue-500/20 rounded-lg text-white text-sm"
+                          >
+                            <option value="">Sélectionner une direction</option>
+                            {matchedJobDirections.map((dir) => (
+                              <option key={dir} value={dir}>{getDirectionFullName(dir)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
 
                     {/* Remaining primes UI preserved unchanged... */}
