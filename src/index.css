@@ -1,0 +1,414 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth global transitions */
+* {
+  transition: all 0.3s ease;
+}
+
+button, a {
+  transition: all 0.2s ease;
+}
+
+/* Subtle background effects - Inspired by creative dribbble design */
+body {
+  background: linear-gradient(135deg, #0f1419 0%, #1a1f3a 25%, #2d1b69 50%, #1f2555 75%, #0f1419 100%);
+  background-attachment: fixed;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Base font size increase */
+html {
+  font-size: 18px;
+}
+
+/* Dynamic abstract background with blobs */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+  animation: blob-animation 8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 60% 70%, rgba(99, 102, 241, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse at 30% 30%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+  animation: blob-animation-reverse 10s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes blob-animation {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+@keyframes blob-animation-reverse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-40px, 40px) scale(0.95);
+  }
+  66% {
+    transform: translate(20px, -25px) scale(1.05);
+  }
+}
+
+/* Animated mesh gradient lines */
+body {
+  background-image:
+    linear-gradient(90deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px);
+  background-size: 100px 100px;
+  background-position: 0 0, 10px 10px;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.5), rgba(129, 140, 248, 0.5));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(96, 165, 250, 0.7), rgba(129, 140, 248, 0.7));
+}
+
+/* Styles pour le lecteur de podcast */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #ffffff;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-moz-range-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  background: #ffffff;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Animation pour le marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-rss {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee-rss {
+  animation: marquee-rss 60s linear infinite;
+}
+
+/* Styles responsifs pour le lecteur */
+@media (max-width: 768px) {
+  .podcast-player {
+    width: 280px !important;
+    left: 8px !important;
+  }
+  
+  .podcast-player.minimized {
+    width: 60px !important;
+  }
+}
+
+/* Effet de glow pour les boutons */
+.podcast-button:hover {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+}
+
+/* Scrollbar personnalisée pour la liste des épisodes */
+.podcast-episodes::-webkit-scrollbar {
+  width: 6px;
+}
+
+.podcast-episodes::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.podcast-episodes::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.podcast-episodes::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Subtle glow animations */
+@keyframes subtle-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 15px 3px rgba(255, 165, 0, 0.08);
+  }
+}
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* Apply subtle effects */
+section {
+  animation: soft-pulse 4s ease-in-out infinite;
+}
+
+header {
+  animation: soft-pulse 5s ease-in-out infinite;
+}
+
+/* FAQ hover/open arrow behavior */
+details .faq-arrow {
+  display: inline-block;
+  transform-origin: center;
+}
+
+details[open] .faq-arrow {
+  transform: rotate(180deg);
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary {
+  list-style: none;
+}
+
+/* Soft luminous glow around FAQ windows */
+details.group {
+  position: relative;
+  overflow: visible;
+  border-radius: 0.75rem; /* match rounded-lg */
+  /* stronger subtle base glow */
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.10), inset 0 0 8px rgba(99,102,241,0.02);
+  transition: box-shadow 220ms ease, transform 200ms ease;
+}
+
+details.group::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  background: radial-gradient(circle at 10% 20%, rgba(168,85,247,0.20), transparent 25%),
+              radial-gradient(circle at 80% 80%, rgba(59,130,246,0.16), transparent 30%);
+  opacity: 0;
+  filter: blur(18px);
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+details.group:hover,
+details.group:focus-within {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 18px 60px rgba(99,102,241,0.22), 0 0 80px rgba(236,72,153,0.12);
+}
+
+details.group:hover::before,
+details.group:focus-within::before {
+  opacity: 0.55;
+}
+
+details.group[open] {
+  box-shadow: 0 26px 90px rgba(99,102,241,0.26), 0 0 120px rgba(236,72,153,0.14);
+}
+
+/* Category-based subtle colored backgrounds for FAQ items */
+.faq-item {
+  /* lighten the panel slightly to stand out from the dark page background */
+  background-color: rgba(255,255,255,0.03);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.00));
+  border-left: 1px solid rgba(255,255,255,0.02);
+}
+.faq-temps-travail {
+  background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(99,102,241,0.08));
+  border-color: rgba(59,130,246,0.26);
+}
+.faq-formation {
+  background: linear-gradient(135deg, rgba(236,72,153,0.14), rgba(168,85,247,0.08));
+  border-color: rgba(236,72,153,0.26);
+}
+.faq-conges {
+  background: linear-gradient(135deg, rgba(16,185,129,0.14), rgba(34,197,94,0.06));
+  border-color: rgba(16,185,129,0.26);
+}
+.faq-absences {
+  background: linear-gradient(135deg, rgba(234,179,8,0.14), rgba(245,158,11,0.06));
+  border-color: rgba(234,179,8,0.26);
+}
+.faq-general {
+  background: linear-gradient(135deg, rgba(148,163,184,0.10), rgba(148,163,184,0.06));
+  border-color: rgba(148,163,184,0.18);
+}
+
+/* Slight color accent on the left edge */
+.faq-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* stronger accent per category */
+.faq-temps-travail::after { background: linear-gradient(180deg, rgba(59,130,246,1), rgba(99,102,241,0.8)); opacity: 0.28 }
+.faq-formation::after { background: linear-gradient(180deg, rgba(236,72,153,1), rgba(168,85,247,0.8)); opacity: 0.28 }
+.faq-conges::after { background: linear-gradient(180deg, rgba(16,185,129,1), rgba(34,197,94,0.8)); opacity: 0.28 }
+.faq-absences::after { background: linear-gradient(180deg, rgba(234,179,8,1), rgba(245,158,11,0.8)); opacity: 0.28 }
+.faq-general::after { background: linear-gradient(180deg, rgba(148,163,184,1), rgba(148,163,184,0.8)); opacity: 0.18 }
+
+/* Badge styling */
+.faq-badge {
+  min-width: 64px;
+  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Calculator cards hover/glow/pulse */
+.calc-card {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.calc-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 18px 40px rgba(99, 102, 241, 0.12), 0 6px 18px rgba(17, 24, 39, 0.25);
+}
+.calc-card .icon-wrap {
+  transition: transform 220ms ease, filter 220ms ease;
+}
+.calc-card:hover .icon-wrap {
+  transform: scale(1.08);
+  filter: drop-shadow(0 6px 18px rgba(34,197,94,0.12));
+}
+
+/* subtle pulse for the cards */
+@keyframes calc-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.06); }
+  70% { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+}
+.calc-card:active {
+  animation: calc-pulse 800ms ease-out;
+}
+.faq-badge.faq-temps-travail, .faq-temps-travail .faq-badge {
+  background: linear-gradient(90deg, rgba(59,130,246,0.95), rgba(96,165,250,0.85));
+}
+.faq-badge.faq-formation, .faq-formation .faq-badge {
+  background: linear-gradient(90deg, rgba(236,72,153,0.95), rgba(168,85,247,0.85));
+}
+.faq-badge.faq-conges, .faq-conges .faq-badge {
+  background: linear-gradient(90deg, rgba(16,185,129,0.95), rgba(34,197,94,0.85));
+}
+.faq-badge.faq-absences, .faq-absences .faq-badge {
+  background: linear-gradient(90deg, rgba(234,179,8,0.95), rgba(245,158,11,0.85));
+}
+.faq-badge.faq-general, .faq-general .faq-badge {
+  background: linear-gradient(90deg, rgba(148,163,184,0.9), rgba(226,232,240,0.6));
+  color: #031025;
+}
