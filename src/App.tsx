@@ -500,7 +500,8 @@ function App() {
   }
 
   const traiterQuestion = async (question: string) => {
-    // Passer les données correctement à la fonction de recherche
+    // Step 1: Use sonar-pro to understand the question and find relevant context
+    // First, find internal context based on the question
     const contexteInterne = trouverContextePertinent(question)
 
     const systemPrompt = `
@@ -518,6 +519,7 @@ function App() {
 - Tu dois répondre comme un collègue syndical de la mairie de Gennevilliers
 - Si l'information n'est pas dans la documentation, réponds UNIQUEMENT : "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
 - Tu dois te baser EXCLUSIVEMENT sur les données du dossier src/data
+- Comprends bien la question et fournis une réponse claire et structurée
 
 🔒 DOCUMENTATION INTERNE UNIQUEMENT
 
@@ -533,12 +535,14 @@ Rappel : Tu ne dois JAMAIS mentionner des articles de loi ou des références ex
       content: msg.content,
     }))
 
+    // Build messages with system prompt and conversation history
     const apiMessages = [
       { role: "system", content: systemPrompt },
       ...conversationHistory,
       { role: "user", content: question },
     ]
 
+    // Use sonar-pro to understand the question and generate intelligent response
     return await appelPerplexity(apiMessages)
   }
 
