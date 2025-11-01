@@ -343,7 +343,8 @@ export const sommaire: SommaireStructure = {
         "télétravail", "travail distance", "domicile", "technologies information",
         "conciliation vie privée", "bien être", "management confiance", "empreinte écologique",
         "conditions travail", "flexibilité", "déconnexion", "outils", "internet",
-        "forfait annuel", "forfait", "jours télétravail", "3 jours maximum", "4 jours fixes", "15 jours"
+        "forfait annuel", "forfait", "jours télétravail", "3 jours maximum", "4 jours fixes", "15 jours",
+        "jours de forfait", "droit jours", "combien jours", "annuel"
       ],
       articles: [
         {
