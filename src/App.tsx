@@ -496,9 +496,9 @@ function App() {
   const allJobs = Array.from(new Set(ifse2Data.flatMap(item => item.jobs))).sort((a: string, b: string) => a.localeCompare(b, 'fr'))
   const appelPerplexity = async (messages: any[]) => {
     try {
-      // Configuration pour utiliser UNIQUEMENT le contexte fourni
+      // Utilise pplx-7b-chat : modèle sans recherche web, 100% local
       const data = { 
-        model: "sonar-pro",  // Modèle stable de Perplexity
+        model: "pplx-7b-chat",  // Modèle sans recherche web
         messages,
         max_tokens: 1000,
         temperature: 0.0,
@@ -512,11 +512,6 @@ function App() {
       if (!response.ok) {
         const errorBody = await response.text()
         console.error("Détail de l'erreur API:", errorBody)
-        // Si c'est une erreur 418, le backend a détecté une recherche web non autorisée
-        if (response.status === 418) {
-          console.warn("⚠️ Le modèle a tenté une recherche web malgré les instructions")
-          return "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
-        }
         throw new Error(`Erreur API (${response.status}): ${response.statusText}`)
       }
       
