@@ -532,8 +532,11 @@ function App() {
 
   const traiterQuestion = async (question: string) => {
     const contexteInterne = trouverContextePertinent(question)
+    
+    // Check if internal context was found (not the generic "not found" message)
+    const hasInternalContent = !contexteInterne.includes("Je ne trouve pas")
 
-    const systemPrompt = `You are a friendly HR colleague at the City of Gennevilliers helping coworkers with questions about HR policies.
+    let systemPrompt = `You are a friendly HR colleague at the City of Gennevilliers helping coworkers with questions about HR policies.
 
 TONE & STYLE:
 - Be friendly, conversational, and brief
@@ -551,6 +554,26 @@ INTERNAL DOCUMENTATION:
 --- DOCUMENTATION INTERNE DE LA MAIRIE DE GENNEVILLIERS ---
 ${contexteInterne}
 --- FIN DOCUMENTATION INTERNE ---`
+
+    // If no internal content found, switch to legifrance-only search
+    if (!hasInternalContent) {
+      systemPrompt = `You are a friendly HR colleague at the City of Gennevilliers helping coworkers with questions about French HR policies.
+
+TONE & STYLE:
+- Be friendly, conversational, and brief
+- Answer like you're talking to a colleague at lunch
+- Keep responses SHORT (2-3 sentences max)
+- Use simple, everyday French
+- Be helpful and warm
+
+SEARCH INSTRUCTIONS:
+1. Search ONLY on legifrance.gouv.fr (French law website)
+2. Look for relevant employment code articles and regulations
+3. Provide the most relevant information from legifrance.gouv.fr
+4. If still not found, respond with: "Je ne trouve pas cette information sur legifrance.gouv.fr. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
+
+Question: ${question}`
+    }
 
     const conversationHistory = chatState.messages.slice(1).map((msg) => ({
       role: msg.type === "user" ? "user" : "assistant",
