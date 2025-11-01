@@ -496,9 +496,9 @@ function App() {
   const allJobs = Array.from(new Set(ifse2Data.flatMap(item => item.jobs))).sort((a: string, b: string) => a.localeCompare(b, 'fr'))
   const appelPerplexity = async (messages: any[]) => {
     try {
-      // Utilise pplx-7b-chat : modèle sans recherche web, 100% local
+      // Utilise sonar-pro : meilleur modèle disponible
       const data = { 
-        model: "pplx-7b-chat",  // Modèle sans recherche web
+        model: "sonar-pro",
         messages,
         max_tokens: 1000,
         temperature: 0.0,
@@ -526,43 +526,39 @@ function App() {
   }
 
   const traiterQuestion = async (question: string) => {
-    // Step 1: Use sonar-pro to understand the question and find relevant context
-    // First, find internal context based on the question
     const contexteInterne = trouverContextePertinent(question)
 
     const systemPrompt = `You are a municipal human resources assistant for the City of Gennevilliers in France.
 
-YOU MUST FOLLOW THESE RULES EXACTLY:
+YOUR PRIORITY - INTERNAL DOCUMENTATION FIRST:
+1. **ALWAYS check the internal documentation first** for answers
+2. If found in internal docs, respond ONLY with that information
+3. DO NOT mention external sources, web search results, or general knowledge
+4. If NOT found in internal docs, respond with: "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
 
-1. **CRITICAL**: DO NOT PERFORM WEB SEARCHES. DO NOT USE THE INTERNET. ONLY ANSWER FROM THE PROVIDED DOCUMENTATION.
-2. **CRITICAL**: DO NOT USE YOUR GENERAL KNOWLEDGE. ONLY USE WHAT IS IN THE DOCUMENTATION BELOW.
-3. **CRITICAL**: IF THE INFORMATION IS NOT IN THE DOCUMENTATION, RESPOND EXACTLY WITH: "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
-4. **CRITICAL**: DO NOT MAKE UP INFORMATION. DO NOT CITE EXTERNAL LAWS OR REFERENCES.
-5. **CRITICAL**: YOUR ENTIRE KNOWLEDGE BASE IS ONLY THE DOCUMENTATION BELOW. NOTHING ELSE.
-
-INTERNAL DOCUMENTATION (YOUR ONLY KNOWLEDGE BASE):
+INTERNAL DOCUMENTATION (PRIMARY SOURCE):
 --- DOCUMENTATION INTERNE DE LA MAIRIE DE GENNEVILLIERS ---
 ${contexteInterne}
 --- FIN DOCUMENTATION INTERNE ---
 
-INSTRUCTION: If you cannot find the answer in the above documentation, respond ONLY with:
-"Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
-
-DO NOT SEARCH. DO NOT USE INTERNET. ONLY USE DOCUMENTATION ABOVE.`
+CRITICAL RULES:
+- Always prioritize the internal documentation
+- Do not cite external laws, references, or web sources
+- If the answer is in the documentation above, use ONLY that
+- If the answer is NOT in the documentation, refuse to answer with the exact phrase above
+- Your role is to help with questions about Gennevilliers municipal HR policies ONLY`
 
     const conversationHistory = chatState.messages.slice(1).map((msg) => ({
       role: msg.type === "user" ? "user" : "assistant",
       content: msg.content,
     }))
 
-    // Build messages with system prompt and conversation history
     const apiMessages = [
       { role: "system", content: systemPrompt },
       ...conversationHistory,
       { role: "user", content: question },
     ]
 
-    // Use sonar-pro to understand the question and generate intelligent response
     return await appelPerplexity(apiMessages)
   }
 
