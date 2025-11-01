@@ -496,14 +496,12 @@ function App() {
   const allJobs = Array.from(new Set(ifse2Data.flatMap(item => item.jobs))).sort((a: string, b: string) => a.localeCompare(b, 'fr'))
   const appelPerplexity = async (messages: any[]) => {
     try {
-      // Configuration pour utiliser UNIQUEMENT le contexte fourni, pas de recherche web
-      // IMPORTANT: Essayons d'abord sonar-pro, mais sinon, on devrait utiliser un modèle sans recherche web
+      // Configuration pour utiliser UNIQUEMENT le contexte fourni
       const data = { 
-        model: "sonar", // Changé de "sonar-pro" à "sonar" pour potentiellement réduire les recherches web
+        model: "sonar-pro",  // Modèle stable de Perplexity
         messages,
-        // Paramètres pour minimiser les recherches web
         max_tokens: 1000,
-        temperature: 0.0,  // Température très basse pour maximiser la cohérence
+        temperature: 0.0,
       }
       const response = await fetch(BACKEND_API_URL, {
         method: "POST",
@@ -524,11 +522,6 @@ function App() {
       
       const result = await response.json()
       console.log("✅ Réponse Perplexity reçue:", result)
-      
-      // Vérifie si Perplexity a fait une recherche web (ce qu'on veut éviter)
-      if (result.search_results && result.search_results.length > 0) {
-        console.warn("⚠️ Perplexity a tenté une recherche web - c'est un problème de instructions")
-      }
       
       return result.choices[0].message.content
     } catch (error) {
