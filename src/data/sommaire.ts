@@ -142,7 +142,7 @@ export const sommaire: SommaireStructure = {
           page: 31,
           source: "temps",
           idContenu: 3,
-          mots_cles: ["garde enfant", "nourrice", "maladie", "école fermée"]
+          mots_cles: ["garde enfant", "nourrice", "maladie", "école fermée", "grève", "école en grève", "fermée grève"]
         },
         {
           titre: "Article 4 : Proche aidant",
