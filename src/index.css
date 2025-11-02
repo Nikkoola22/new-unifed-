@@ -2,13 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth global transitions */
-* {
-  transition: all 0.3s ease;
+/* Optimized transitions - only on interactive elements */
+button, a, input, select, textarea {
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-button, a {
-  transition: all 0.2s ease;
+/* Use transform instead of all for better performance */
+button:hover, a:hover {
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Subtle background effects - Inspired by creative dribbble design */
@@ -27,7 +28,7 @@ html {
   font-size: 18px;
 }
 
-/* Dynamic abstract background with blobs */
+/* Optimized background with blobs - GPU accelerated */
 body::before {
   content: '';
   position: fixed;
@@ -39,9 +40,11 @@ body::before {
     radial-gradient(circle at 20% 50%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
-  animation: blob-animation 8s ease-in-out infinite;
+  animation: blob-animation 12s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 body::after {
@@ -54,42 +57,46 @@ body::after {
   background:
     radial-gradient(ellipse at 60% 70%, rgba(99, 102, 241, 0.1) 0%, transparent 60%),
     radial-gradient(ellipse at 30% 30%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
-  animation: blob-animation-reverse 10s ease-in-out infinite;
+  animation: blob-animation-reverse 15s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
+  transform: translateZ(0); /* Force GPU acceleration */
 }
 
 @keyframes blob-animation {
   0%, 100% {
-    transform: translate(0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   33% {
-    transform: translate(30px, -30px) scale(1.1);
+    transform: translate3d(30px, -30px, 0) scale(1.1);
   }
   66% {
-    transform: translate(-20px, 20px) scale(0.9);
+    transform: translate3d(-20px, 20px, 0) scale(0.9);
   }
 }
 
 @keyframes blob-animation-reverse {
   0%, 100% {
-    transform: translate(0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   33% {
-    transform: translate(-40px, 40px) scale(0.95);
+    transform: translate3d(-40px, 40px, 0) scale(0.95);
   }
   66% {
-    transform: translate(20px, -25px) scale(1.05);
+    transform: translate3d(20px, -25px, 0) scale(1.05);
   }
 }
 
-/* Animated mesh gradient lines */
+/* Simplified mesh gradient - removed animation for better performance */
 body {
   background-image:
     linear-gradient(90deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px),
     linear-gradient(0deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px);
   background-size: 100px 100px;
   background-position: 0 0, 10px 10px;
+  /* Use transform instead of background-position for better performance */
+  transform: translateZ(0);
 }
 
 /* Smooth scrollbar */
@@ -186,10 +193,14 @@ body {
 
 .animate-marquee {
   animation: marquee 30s linear infinite;
+  will-change: transform;
+  transform: translateZ(0); /* GPU acceleration */
 }
 
 .animate-marquee-rss {
   animation: marquee-rss 60s linear infinite;
+  will-change: transform;
+  transform: translateZ(0); /* GPU acceleration */
 }
 
 /* Styles responsifs pour le lecteur */
@@ -247,14 +258,8 @@ body {
   }
 }
 
-/* Apply subtle effects */
-section {
-  animation: soft-pulse 4s ease-in-out infinite;
-}
-
-header {
-  animation: soft-pulse 5s ease-in-out infinite;
-}
+/* Removed continuous animations on sections/headers for better performance */
+/* These were causing janky scrolling */
 
 /* FAQ hover/open arrow behavior */
 details .faq-arrow {
@@ -282,6 +287,8 @@ details.group {
   /* stronger subtle base glow */
   box-shadow: 0 0 20px rgba(99, 102, 241, 0.10), inset 0 0 8px rgba(99,102,241,0.02);
   transition: box-shadow 220ms ease, transform 200ms ease;
+  will-change: transform, box-shadow;
+  transform: translateZ(0); /* GPU acceleration */
 }
 
 details.group::before {
@@ -299,7 +306,7 @@ details.group::before {
 
 details.group:hover,
 details.group:focus-within {
-  transform: translateY(-4px) scale(1.01);
+  transform: translate3d(0, -4px, 0) scale(1.01);
   box-shadow: 0 18px 60px rgba(99,102,241,0.22), 0 0 80px rgba(236,72,153,0.12);
 }
 
@@ -371,20 +378,24 @@ details.group[open] {
   justify-content: center;
 }
 
-/* Calculator cards hover/glow/pulse */
+/* Calculator cards hover/glow/pulse - optimized */
 .calc-card {
   transition: transform 200ms ease, box-shadow 200ms ease;
+  will-change: transform, box-shadow;
+  transform: translateZ(0); /* GPU acceleration */
 }
 .calc-card:hover {
-  transform: translateY(-6px) scale(1.03);
+  transform: translate3d(0, -6px, 0) scale(1.03);
   box-shadow: 0 18px 40px rgba(99, 102, 241, 0.12), 0 6px 18px rgba(17, 24, 39, 0.25);
 }
 .calc-card .icon-wrap {
-  transition: transform 220ms ease, filter 220ms ease;
+  transition: transform 220ms ease;
+  will-change: transform;
+  transform: translateZ(0);
 }
 .calc-card:hover .icon-wrap {
-  transform: scale(1.08);
-  filter: drop-shadow(0 6px 18px rgba(34,197,94,0.12));
+  transform: scale(1.08) translateZ(0);
+  /* Removed filter: drop-shadow for better performance */
 }
 
 /* subtle pulse for the cards */

@@ -89,8 +89,8 @@ const expandirAvecSynonymes = (terme: string): string[] => {
   return [...new Set(resultats)]
 }
 
-// --- FONCTION DE RECHERCHE ---
-const trouverContextePertinent = (question: string): string => {
+// --- FONCTION DE RECHERCHE DE BASE (sans IA) ---
+const trouverContextePertinentBase = (question: string): Array<{ id: number; score: number; titre: string; contenu: string | null }> => {
   const questionNettoyee = nettoyerChaine(question)
   const motsQuestionNettoyes = questionNettoyee.split(/\s+/).filter((mot) => mot.length > 0)
   
@@ -101,13 +101,11 @@ const trouverContextePertinent = (question: string): string => {
     syns.forEach(syn => motsFinalAvecSynonymes.add(syn))
   })
   
-  
   const chapitresTrouves = new Map<number, { score: number }>()
 
   sommaireData.chapitres.forEach((chapitreItem: any, index: number) => {
     let score = 0
     
-    // Utiliser idContenu au lieu de l'index pour la correspondance
     const chapitreId = chapitreItem.idContenu || (index + 1)
 
     const motsClesChapitre = chapitreItem.mots_cles || []
@@ -126,12 +124,12 @@ const trouverContextePertinent = (question: string): string => {
       else if (questionNettoyee.includes(motCleNettoye)) {
         score += 5
       } 
-      // Recherche partielle seulement si pas de match exact
+      // Recherche partielle
       else {
         for (const motQuestion of motsFinalAvecSynonymes) {
           if (motCleNettoye.includes(motQuestion) || motQuestion.includes(motCleNettoye)) {
-            score += 2  // Score plus faible pour les matches partiels
-            break  // Compter une seule fois par motCle
+            score += 2
+            break
           }
         }
       }
@@ -149,8 +147,41 @@ const trouverContextePertinent = (question: string): string => {
     }
   })
 
-  if (chapitresTrouves.size === 0) {
-    // Si aucun chapitre n'est trouvé, retourner les premiers chapitres comme contexte général
+  // Retourner les candidats triés avec leurs contenus
+  return Array.from(chapitresTrouves.entries())
+    .sort(([, a], [, b]) => b.score - a.score)
+    .slice(0, 3) // Prendre les 3 meilleurs candidats pour l'IA
+    .map(([id]) => {
+      const chapitreData = sommaireData.chapitres.find((ch: any) => (ch.idContenu || 0) === id)
+      if (!chapitreData) return null
+      
+      let contenuTexte = null
+      if (chapitreData.source === "teletravail") {
+        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
+      } else if (chapitreData.source === "formation") {
+        contenuTexte = formation || null
+      } else {
+        contenuTexte = (chapitres as Record<number, string>)[id] || null
+      }
+
+      const score = chapitresTrouves.get(id)?.score || 0
+      return {
+        id,
+        score,
+        titre: chapitreData.titre,
+        contenu: contenuTexte
+      }
+    })
+    .filter((item): item is { id: number; score: number; titre: string; contenu: string | null } => item !== null)
+}
+
+// --- FONCTION DE RECHERCHE AMÉLIORÉE AVEC IA ---
+const trouverContextePertinentAvecIA = async (question: string): Promise<string> => {
+  // Étape 1: Recherche basique pour trouver les candidats
+  const candidats = trouverContextePertinentBase(question)
+  
+  if (candidats.length === 0) {
+    // Fallback: retourner les premiers chapitres
     const chapitresGeneraux = sommaireData.chapitres.slice(0, 3).map((ch: any) => {
       const id = ch.idContenu || 1
       let contenuTexte = null
@@ -174,54 +205,110 @@ const trouverContextePertinent = (question: string): string => {
     )
   }
 
-  const resultatsTries = Array.from(chapitresTrouves.entries())
-    .sort(([idA, a], [idB, b]) => {
-      // Trier d'abord par score (décroissant)
-      if (b.score !== a.score) {
-        return b.score - a.score
-      }
-      // Si scores égaux, favoriser les chapitres qui contiennent "mariage" ou "forfait" exactement
-      const chapitreA = sommaireData.chapitres.find((ch: any) => (ch.idContenu || 0) === idA)
-      const chapitreB = sommaireData.chapitres.find((ch: any) => (ch.idContenu || 0) === idB)
-      const motsDesArticlesA = (chapitreA?.articles || []).map((a: any) => a.titre).join(" ").toLowerCase()
-      const motsDesArticlesB = (chapitreB?.articles || []).map((a: any) => a.titre).join(" ").toLowerCase()
-      const questionLow = questionNettoyee.toLowerCase()
-      
-      const scoreArticlesA = motsDesArticlesA.includes(questionLow) ? 1 : 0
-      const scoreArticlesB = motsDesArticlesB.includes(questionLow) ? 1 : 0
-      
-      return scoreArticlesB - scoreArticlesA
-    })
-    .slice(0, 1)  // Limiter à 1 seul chapitre au lieu de 3 pour éviter le mélange
-    .map(([id]) => {
-      // Trouver le chapitre correspondant dans le sommaire
-      const chapitreData = sommaireData.chapitres.find((ch: any) => (ch.idContenu || 0) === id)
-      if (!chapitreData) return null
-      
-      let contenuTexte = null
-
-      // Gérer les différentes sources selon le sommaire
-      if (chapitreData.source === "teletravail") {
-        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
-      } else if (chapitreData.source === "formation") {
-        contenuTexte = formation || null
-      } else {
-        // Par défaut, utiliser les données de temps (chapitres)
-        contenuTexte = (chapitres as Record<number, string>)[id] || null
-      }
-
-      if (!contenuTexte) {
-        return null
-      }
-      return `Source: ${chapitreData.titre}\nContenu: ${contenuTexte}`
-    })
-    .filter(Boolean)
-
-  if (resultatsTries.length === 0) {
-    return "Aucun contenu textuel trouvé pour les chapitres pertinents."
+  // Étape 2: Si un seul candidat avec un score très élevé, le retourner directement
+  if (candidats.length === 1 && candidats[0].score >= 50) {
+    const candidat = candidats[0]
+    if (candidat.contenu) {
+      return `Source: ${candidat.titre}\nContenu: ${candidat.contenu}`
+    }
   }
 
-  return resultatsTries.join("\n\n---\n\n")
+  // Étape 3: Utiliser l'IA pour sélectionner le meilleur candidat parmi les top candidats
+  try {
+    const candidatsFormates = candidats.map((c, index) => 
+      `[${index + 1}] Titre: ${c.titre}\nScore: ${c.score}\nExtrait: ${c.contenu ? c.contenu.substring(0, 300) + '...' : 'Aucun contenu'}`
+    ).join('\n\n')
+
+    const promptIA = `Tu es un assistant qui aide à sélectionner le contexte le plus pertinent pour répondre à une question.
+
+QUESTION DE L'UTILISATEUR: "${question}"
+
+CANDIDATS DE CONTEXTE:
+${candidatsFormates}
+
+INSTRUCTIONS:
+1. Analyse la question de l'utilisateur
+2. Compare-la avec chaque candidat de contexte
+3. Sélectionne LE NUMÉRO (1, 2 ou 3) du candidat le plus pertinent pour répondre à cette question
+4. Réponds UNIQUEMENT par le numéro (1, 2 ou 3), sans autre texte
+
+RÉPONSE (juste le numéro):`
+
+    const response = await fetch(BACKEND_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages: [
+          { role: "user", content: promptIA }
+        ],
+        max_tokens: 10,
+        temperature: 0.0,
+      }),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      const reponseIA = data.choices[0]?.message?.content?.trim() || ""
+      
+      // Extraire le numéro (1, 2 ou 3)
+      const numeroMatch = reponseIA.match(/^(\d)/)
+      if (numeroMatch) {
+        const indexSelectionne = parseInt(numeroMatch[1]) - 1
+        if (indexSelectionne >= 0 && indexSelectionne < candidats.length && candidats[indexSelectionne].contenu) {
+          const candidatSelectionne = candidats[indexSelectionne]
+          return `Source: ${candidatSelectionne.titre}\nContenu: ${candidatSelectionne.contenu}`
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Erreur lors de la sélection IA, utilisation du meilleur candidat basique:", error)
+  }
+
+  // Fallback: retourner le meilleur candidat basique
+  const meilleurCandidat = candidats[0]
+  if (meilleurCandidat.contenu) {
+    return `Source: ${meilleurCandidat.titre}\nContenu: ${meilleurCandidat.contenu}`
+  }
+
+  return "Aucun contenu textuel trouvé pour les chapitres pertinents."
+}
+
+// --- FONCTION DE RECHERCHE (version synchrone pour compatibilité) ---
+const trouverContextePertinent = (question: string): string => {
+  // Version synchrone qui utilise la recherche de base (sans appel IA)
+  const candidats = trouverContextePertinentBase(question)
+  
+  if (candidats.length === 0) {
+    const chapitresGeneraux = sommaireData.chapitres.slice(0, 3).map((ch: any) => {
+      const id = ch.idContenu || 1
+      let contenuTexte = null
+      if (ch.source === "teletravail") {
+        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
+      } else if (ch.source === "formation") {
+        contenuTexte = formation || null
+      } else {
+        contenuTexte = (chapitres as Record<number, string>)[id] || null
+      }
+      return contenuTexte ? `Source: ${ch.titre}\nContenu: ${contenuTexte}` : null
+    }).filter(Boolean)
+    
+    if (chapitresGeneraux.length > 0) {
+      return chapitresGeneraux.join("\n\n---\n\n")
+    }
+    
+    return (
+      "Aucun chapitre spécifique trouvé pour cette question. Voici un aperçu général des thèmes: " +
+      sommaireData.chapitres.map((s: any) => s.titre).join(", ")
+    )
+  }
+
+  const meilleurCandidat = candidats[0]
+  if (meilleurCandidat.contenu) {
+    return `Source: ${meilleurCandidat.titre}\nContenu: ${meilleurCandidat.contenu}`
+  }
+
+  return "Aucun contenu textuel trouvé pour les chapitres pertinents."
 }
 
 function App() {
@@ -268,8 +355,11 @@ function App() {
 
   // --- EFFETS ---
   useEffect(() => {
-    if (chatState.currentView === "chat") {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (chatState.currentView === "chat" && messagesEndRef.current) {
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" })
+      })
     }
   }, [chatState.messages, chatState.currentView])
 
@@ -531,7 +621,8 @@ function App() {
   }
 
   const traiterQuestion = async (question: string) => {
-    const contexteInterne = trouverContextePertinent(question)
+    // Utiliser la version améliorée avec IA pour une meilleure pertinence
+    const contexteInterne = await trouverContextePertinentAvecIA(question)
     
     // Check if internal context was found (not the generic "not found" message)
     const hasInternalContent = !contexteInterne.includes("Je ne trouve pas")

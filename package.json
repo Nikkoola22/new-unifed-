@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "server": "node server.js",
-    "dev:full": "concurrently \"npm run server\" \"npm run dev\""
+    "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
+    "test:search": "node test-recherche-simple.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
