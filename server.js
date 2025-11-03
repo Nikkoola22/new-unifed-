@@ -89,18 +89,22 @@ app.post('/api/completions', async (req, res) => {
 app.get('/api/rss', async (req, res) => {
   try {
     const fetch = (await import('node-fetch')).default;
-    const xml2js = await import('xml2js');
-    const parser = new xml2js.default.Parser();
+    const { Parser } = await import('xml2js');
+    const parser = new Parser();
     
     const rssUrl = "https://www.franceinfo.fr/politique.rss";
     
     console.log(`📡 Récupération du flux RSS: ${rssUrl}`);
     
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const response = await fetch(rssUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.error(`❌ Erreur fetch RSS (${response.status}):`, response.statusText);
@@ -118,11 +122,18 @@ app.get('/api/rss', async (req, res) => {
     }));
     
     console.log(`✅ ${articles.length} articles RSS trouvés`);
+    // Empêcher tout cache côté CDN/navigateur
+    res.setHeader('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
     res.status(200).json({ items: articles });
     
   } catch (error) {
     console.error("💥 Erreur RSS:", error);
-    res.status(500).json({ error: "Erreur récupération RSS", details: error.message });
+    // Fallback minimal pour éviter les erreurs côté client
+    const fallbackItems = [
+      { title: '• Actualités indisponibles pour le moment', link: '#', pubDate: new Date().toISOString() }
+    ];
+    res.setHeader('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
+    res.status(200).json({ items: fallbackItems, warning: 'fallback' });
   }
 });
 

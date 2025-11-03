@@ -175,103 +175,143 @@ const trouverContextePertinentBase = (question: string): Array<{ id: number; sco
     .filter((item): item is { id: number; score: number; titre: string; contenu: string | null } => item !== null)
 }
 
-// --- FONCTION DE RECHERCHE AMÉLIORÉE AVEC IA ---
+// --- OUTILS: Normalisation tolérante aux fautes ---
+const normaliserFaute = (s: string): string => {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/(es|s|x)\b/g, "") // pluriels FR simples
+    .trim()
+}
+
+const distanceEdition = (a: string, b: string): number => {
+  const m = a.length, n = b.length
+  if (!m) return n
+  if (!n) return m
+  const dp = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      )
+    }
+  }
+  return dp[m][n]
+}
+
+// --- FONCTION DE RECHERCHE AMÉLIORÉE AVEC IA (sans scoring préalable) ---
 const trouverContextePertinentAvecIA = async (question: string): Promise<string> => {
-  // Étape 1: Recherche basique pour trouver les candidats
-  const candidats = trouverContextePertinentBase(question)
-  
-  if (candidats.length === 0) {
-    // Fallback: retourner les premiers chapitres
-    const chapitresGeneraux = sommaireData.chapitres.slice(0, 3).map((ch: any) => {
-      const id = ch.idContenu || 1
-      let contenuTexte = null
-      if (ch.source === "teletravail") {
-        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
-      } else if (ch.source === "formation") {
-        contenuTexte = formation || null
-      } else {
-        contenuTexte = (chapitres as Record<number, string>)[id] || null
-      }
-      return contenuTexte ? `Source: ${ch.titre}\nContenu: ${contenuTexte}` : null
-    }).filter(Boolean)
-    
-    if (chapitresGeneraux.length > 0) {
-      return chapitresGeneraux.join("\n\n---\n\n")
-    }
-    
-    return (
-      "Aucun chapitre spécifique trouvé pour cette question. Voici un aperçu général des thèmes: " +
-      sommaireData.chapitres.map((s: any) => s.titre).join(", ")
-    )
-  }
+  // Index compact de tous les chapitres (titres + mots-clés principaux)
+  const indexChapitres = sommaireData.chapitres.map((ch: any) => {
+    const keywords = [
+      ...(ch.mots_cles || []),
+      ...(ch.articles?.flatMap((a: any) => a.mots_cles || []) || [])
+    ].slice(0, 12) // limiter pour rester concis
+    return `[#${ch.idContenu}] ${ch.titre}\nMots-clés: ${keywords.join(', ').slice(0, 300)}`
+  }).join('\n\n')
 
-  // Étape 2: Si un seul candidat avec un score très élevé, le retourner directement
-  if (candidats.length === 1 && candidats[0].score >= 50) {
-    const candidat = candidats[0]
-    if (candidat.contenu) {
-      return `Source: ${candidat.titre}\nContenu: ${candidat.contenu}`
-    }
-  }
+  const promptIA = `Tu es un assistant et tu DOIS tolérer les fautes d'orthographe/grammaire et les abréviations.
+Analyse la question et choisis le chapitre interne le plus pertinent.
 
-  // Étape 3: Utiliser l'IA pour sélectionner le meilleur candidat parmi les top candidats
+QUESTION: "${question}"
+
+LISTE DES CHAPITRES:
+${indexChapitres}
+
+Règles:
+- Tolérance maximale aux fautes (corrige mentalement les mots)
+- Ne fais pas d'inférence externe, base-toi sur les titres/mots-clés
+- Réponds UNIQUEMENT par l'identifiant numérique après # (ex: 5), rien d'autre.`
+
   try {
-    const candidatsFormates = candidats.map((c, index) => 
-      `[${index + 1}] Titre: ${c.titre}\nScore: ${c.score}\nExtrait: ${c.contenu ? c.contenu.substring(0, 300) + '...' : 'Aucun contenu'}`
-    ).join('\n\n')
-
-    const promptIA = `Tu es un assistant qui aide à sélectionner le contexte le plus pertinent pour répondre à une question.
-
-QUESTION DE L'UTILISATEUR: "${question}"
-
-CANDIDATS DE CONTEXTE:
-${candidatsFormates}
-
-INSTRUCTIONS:
-1. Analyse la question de l'utilisateur
-2. Compare-la avec chaque candidat de contexte
-3. Sélectionne LE NUMÉRO (1, 2 ou 3) du candidat le plus pertinent pour répondre à cette question
-4. Réponds UNIQUEMENT par le numéro (1, 2 ou 3), sans autre texte
-
-RÉPONSE (juste le numéro):`
-
     const response = await fetch(BACKEND_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "sonar-pro",
-        messages: [
-          { role: "user", content: promptIA }
-        ],
-        max_tokens: 10,
+        messages: [ { role: "user", content: promptIA } ],
+        max_tokens: 8,
         temperature: 0.0,
       }),
     })
 
     if (response.ok) {
       const data = await response.json()
-      const reponseIA = data.choices[0]?.message?.content?.trim() || ""
-      
-      // Extraire le numéro (1, 2 ou 3)
-      const numeroMatch = reponseIA.match(/^(\d)/)
-      if (numeroMatch) {
-        const indexSelectionne = parseInt(numeroMatch[1]) - 1
-        if (indexSelectionne >= 0 && indexSelectionne < candidats.length && candidats[indexSelectionne].contenu) {
-          const candidatSelectionne = candidats[indexSelectionne]
-          return `Source: ${candidatSelectionne.titre}\nContenu: ${candidatSelectionne.contenu}`
+      const txt = (data.choices?.[0]?.message?.content || "").trim()
+      const m = txt.match(/(\d{1,3})/)
+      if (m) {
+        const idChoisi = parseInt(m[1], 10)
+        const chapitre = sommaireData.chapitres.find((c: any) => (c.idContenu || 0) === idChoisi)
+        if (chapitre) {
+          let contenuTexte: string | null = null
+          if (chapitre.source === "teletravail") {
+            contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
+          } else if (chapitre.source === "formation") {
+            contenuTexte = formation || null
+          } else {
+            contenuTexte = (chapitres as Record<number, string>)[idChoisi] || null
+          }
+          if (contenuTexte) {
+            return `Source: ${chapitre.titre}\nContenu: ${contenuTexte}`
+          }
         }
       }
     }
-  } catch (error) {
-    console.warn("Erreur lors de la sélection IA, utilisation du meilleur candidat basique:", error)
+  } catch (e) {
+    console.warn("Sélection IA impossible, on passe au fallback tolérant:", e)
   }
 
-  // Fallback: retourner le meilleur candidat basique
-  const meilleurCandidat = candidats[0]
-  if (meilleurCandidat.contenu) {
-    return `Source: ${meilleurCandidat.titre}\nContenu: ${meilleurCandidat.contenu}`
+  // Fallback tolérant: matching flou question ↔ mots-clés de tous les chapitres
+  const q = normaliserFaute(question)
+  let meilleur: { id: number; titre: string; score: number } | null = null
+  for (const ch of sommaireData.chapitres as any[]) {
+    const mots = [
+      ...(ch.mots_cles || []),
+      ...(ch.articles?.flatMap((a: any) => a.mots_cles || []) || [])
+    ]
+    let score = 0
+    for (const mc of mots) {
+      const nmc = normaliserFaute(mc)
+      if (!nmc) continue
+      const d = distanceEdition(q.slice(0, 24), nmc.slice(0, 24)) // petite fenêtre
+      if (q.includes(nmc)) score += 8
+      else if (nmc.includes(q)) score += 6
+      else if (d <= 2) score += 5
+      else if (d <= 3) score += 3
+    }
+    if (!meilleur || score > meilleur.score) {
+      meilleur = { id: ch.idContenu, titre: ch.titre, score }
+    }
   }
 
-  return "Aucun contenu textuel trouvé pour les chapitres pertinents."
+  if (meilleur && meilleur.score > 0) {
+    const chSel = (sommaireData.chapitres as any[]).find(c => c.idContenu === meilleur!.id)
+    if (chSel) {
+      let contenuTexte: string | null = null
+      if (chSel.source === "teletravail") {
+        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
+      } else if (chSel.source === "formation") {
+        contenuTexte = formation || null
+      } else {
+        contenuTexte = (chapitres as Record<number, string>)[meilleur.id] || null
+      }
+      if (contenuTexte) {
+        return `Source: ${chSel.titre}\nContenu: ${contenuTexte}`
+      }
+    }
+  }
+
+  // Dernier recours: message générique
+  return "Aucun chapitre spécifique trouvé pour cette question. Voici un aperçu général des thèmes: " +
+    (sommaireData.chapitres as any[]).map((s: any) => s.titre).join(", ")
 }
 
 // --- FONCTION DE RECHERCHE (version synchrone pour compatibilité) ---
@@ -616,8 +656,21 @@ function App() {
       return result.choices[0].message.content
     } catch (error) {
       console.error("Erreur lors du traitement de la question:", error)
-      return "Je ne trouve pas cette information dans nos documents internes. Contactez la CFDT au 01 40 85 64 64 pour plus de détails."
+      return "__API_ERROR__"
     }
+  }
+
+  // Fallback local: construit une courte réponse à partir du contexte interne
+  const construireReponseLocale = (question: string, contexte: string): string => {
+    const qn = normaliserFaute(question)
+    // Cas spécifiques utiles
+    if (qn.includes('formation') && (qn.includes('obligatoir') || qn.includes('obligatoire'))) {
+      return "Formations obligatoires: formation d’intégration, professionnalisation (prise de poste, parcours), hygiène et sécurité."
+    }
+    // Par défaut: extraire les premières lignes de contenu
+    const contenuMatch = contexte.split('\nContenu: ')[1] || contexte
+    const extrait = contenuMatch.replace(/\n+/g, ' ').slice(0, 240)
+    return extrait ? `${extrait}${extrait.length >= 240 ? '…' : ''}` : "Je n'ai pas assez d'éléments dans le contexte interne."
   }
 
   const traiterQuestion = async (question: string) => {
@@ -677,7 +730,12 @@ Question: ${question}`
       { role: "user", content: question },
     ]
 
-    return await appelPerplexity(apiMessages)
+    const reponseIA = await appelPerplexity(apiMessages)
+    if (reponseIA === "__API_ERROR__" || reponseIA.includes("Je ne trouve pas cette information")) {
+      // Fallback local tolérant aux fautes basé sur le contexte interne
+      return construireReponseLocale(question, contexteInterne)
+    }
+    return reponseIA
   }
 
   const handleSendMessage = async () => {
