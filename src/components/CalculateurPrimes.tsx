@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { ChevronRight, CheckCircle2, AlertCircle, TrendingUp, Calculator } from 'lucide-react'
 import { ifse1Data, ifse2Data, getAllDirections, getIFSE2ByDirection, getDirectionFullName } from '../data/rifseep-data'
 
@@ -57,8 +57,9 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
   const stepDescriptions = [
     { num: 1, label: 'Catégorie', desc: 'Votre grille indiciaire' },
     { num: 2, label: 'Fonction', desc: 'IFSE 1 - Prime de base' },
-    { num: 3, label: 'Primes complément.', desc: 'IFSE 2 & IFSE 3' },
-    { num: 4, label: 'Résultat', desc: 'Total mensuel' },
+    { num: 3, label: 'Primes sujétion', desc: 'IFSE 2 - Services' },
+    { num: 4, label: 'Primes week-end', desc: 'IFSE 3 - Samedis/Dimanches' },
+    { num: 5, label: 'Résultat', desc: 'Total mensuel' },
   ]
 
   const isStepComplete = (step: number) => {
@@ -66,6 +67,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
     if (step === 2) return selectedFunction !== ''
     if (step === 3) return selectedDirection !== ''
     if (step === 4) return true
+    if (step === 5) return true
     return false
   }
 
@@ -89,13 +91,33 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
     setSelectedIFSE2(newSet)
   }
 
+  // Auto-advance to next step when current step is complete
+  useEffect(() => {
+    if (currentStep === 1 && selectedCategory) {
+      setTimeout(() => setCurrentStep(2), 300)
+    }
+  }, [selectedCategory, currentStep])
+
+  useEffect(() => {
+    if (currentStep === 2 && selectedFunction) {
+      setTimeout(() => setCurrentStep(3), 300)
+    }
+  }, [selectedFunction, currentStep])
+
+  useEffect(() => {
+    if (currentStep === 3 && selectedDirection) {
+      setTimeout(() => setCurrentStep(4), 300)
+    }
+  }, [selectedDirection, currentStep])
+
   const progressPercent = Math.round(
     (Object.values({
       category: selectedCategory ? 1 : 0,
       function: selectedFunction ? 1 : 0,
       direction: selectedDirection ? 1 : 0,
       weekend: ifse3Total > 0 ? 1 : 0,
-    }).reduce((a, b) => a + b, 0) / 4) * 100
+      result: selectedFunction ? 1 : 0,
+    }).reduce((a, b) => a + b, 0) / 5) * 100
   )
 
   return (
@@ -348,94 +370,188 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
               </div>
             )}
           </div>
-
-          {/* IFSE 3 */}
-          <div>
-            <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-purple-400" />
-              IFSE 3 — Primes week-end
-            </h5>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">Samedis/mois</label>
-                <select
-                  value={weekendSaturdays}
-                  onChange={(e) => setWeekendSaturdays(Number(e.target.value))}
-                  className="w-full px-2 py-1 bg-slate-700/50 border border-slate-600/30 rounded text-white text-sm"
-                >
-                  {[0, 1, 2, 3, 4, 5].map(n => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">Dimanches/mois</label>
-                <select
-                  value={weekendSundays}
-                  onChange={(e) => setWeekendSundays(Number(e.target.value))}
-                  className="w-full px-2 py-1 bg-slate-700/50 border border-slate-600/30 rounded text-white text-sm"
-                >
-                  {[0, 1, 2, 3, 4, 5].map(n => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">Taux Samedi</label>
-                <select
-                  value={weekendRateSat}
-                  onChange={(e) => setWeekendRateSat(Number(e.target.value))}
-                  className="w-full px-2 py-1 bg-slate-700/50 border border-slate-600/30 rounded text-white text-sm"
-                >
-                  <option value={40}>40€ (jusqu'à 3h13)</option>
-                  <option value={60}>60€ (3h16 - 7h12)</option>
-                  <option value={80}>80€ (plus 7h12)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">Taux Dimanche</label>
-                <select
-                  value={weekendRateSun}
-                  onChange={(e) => setWeekendRateSun(Number(e.target.value))}
-                  className="w-full px-2 py-1 bg-slate-700/50 border border-slate-600/30 rounded text-white text-sm"
-                >
-                  <option value={40}>40€ (jusqu'à 3h13)</option>
-                  <option value={60}>60€ (3h16 - 7h12)</option>
-                  <option value={80}>80€ (plus 7h12)</option>
-                </select>
-              </div>
-            </div>
-
-            {ifse3Total > 0 && (
-              <div className="mt-3 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-sm text-purple-200">
-                <p>Primes week-end calculées:</p>
-                <p className="font-bold mt-1">
-                  Samedi: {ifse3SatTotal}€ | Dimanche: {ifse3SunTotal}€ | Total: <span className="text-purple-300">{ifse3Total}€</span>/mois
-                </p>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
-      {/* ÉTAPE 4: RÉSULTAT FINAL */}
+      {/* ÉTAPE 4: PRIMES WEEK-END (IFSE 3) */}
       {selectedFunction && (
-        <div className={`transition-all duration-300 ${currentStep === 4 ? 'ring-2 ring-green-400/50' : ''} bg-gradient-to-br from-green-900/40 via-emerald-900/40 to-teal-900/40 rounded-xl p-6 border border-green-500/40 shadow-lg`}>
+        <div className={`transition-all duration-300 ${currentStep === 4 ? 'ring-2 ring-purple-400/50' : ''} bg-gradient-to-br from-slate-800/60 to-slate-800/40 rounded-xl p-6 border border-slate-700/50 hover:border-slate-600/50`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                4
+              </div>
+              <div>
+                <h4 className="text-lg font-semibold text-white">Primes week-end</h4>
+                <p className="text-xs text-slate-400">IFSE 3 - Samedis et dimanches travaillés</p>
+              </div>
+            </div>
+            {(weekendSaturdays > 0 || weekendSundays > 0) && <CheckCircle2 className="w-5 h-5 text-green-400" />}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="text-xs text-slate-400 mb-2 block font-medium">Samedis travaillés par mois</label>
+              <div className="space-y-2">
+                {[0, 1, 2, 3, 4, 5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setWeekendSaturdays(n)}
+                    className={`w-full p-2 rounded text-sm transition-all ${
+                      weekendSaturdays === n
+                        ? 'bg-purple-500/70 text-white font-medium border border-purple-400'
+                        : 'bg-slate-700/30 text-slate-300 border border-slate-600/30 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    {n} samedi{n !== 1 ? 's' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-2 block font-medium">Dimanches travaillés par mois</label>
+              <div className="space-y-2">
+                {[0, 1, 2, 3, 4, 5].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setWeekendSundays(n)}
+                    className={`w-full p-2 rounded text-sm transition-all ${
+                      weekendSundays === n
+                        ? 'bg-purple-500/70 text-white font-medium border border-purple-400'
+                        : 'bg-slate-700/30 text-slate-300 border border-slate-600/30 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    {n} dimanche{n !== 1 ? 's' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {(weekendSaturdays > 0 || weekendSundays > 0) && (
+            <>
+              <div className="mb-6 pb-6 border-b border-slate-600/30">
+                <h5 className="text-sm font-semibold text-slate-200 mb-4">Sélectionnez les taux horaires</h5>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block font-medium">Taux pour les samedis</label>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setWeekendRateSat(40)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSat === 40
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">40€ par samedi</p>
+                        <p className="text-xs">Jusqu'à 3h13 de travail</p>
+                      </button>
+                      <button
+                        onClick={() => setWeekendRateSat(60)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSat === 60
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">60€ par samedi</p>
+                        <p className="text-xs">Entre 3h16 et 7h12 de travail</p>
+                      </button>
+                      <button
+                        onClick={() => setWeekendRateSat(80)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSat === 80
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">80€ par samedi</p>
+                        <p className="text-xs">Plus de 7h12 de travail</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 mb-2 block font-medium">Taux pour les dimanches</label>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => setWeekendRateSun(40)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSun === 40
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">40€ par dimanche</p>
+                        <p className="text-xs">Jusqu'à 3h13 de travail</p>
+                      </button>
+                      <button
+                        onClick={() => setWeekendRateSun(60)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSun === 60
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">60€ par dimanche</p>
+                        <p className="text-xs">Entre 3h16 et 7h12 de travail</p>
+                      </button>
+                      <button
+                        onClick={() => setWeekendRateSun(80)}
+                        className={`w-full p-3 rounded-lg text-left transition-all ${
+                          weekendRateSun === 80
+                            ? 'bg-purple-500/60 border border-purple-400 text-white'
+                            : 'bg-slate-700/30 border border-slate-600/30 text-slate-300 hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <p className="font-semibold">80€ par dimanche</p>
+                        <p className="text-xs">Plus de 7h12 de travail</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {ifse3Total > 0 && (
+                <div className="p-4 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-purple-500/30 border border-purple-500/50 rounded-lg">
+                  <p className="text-xs text-purple-200 mb-2">💰 Calcul IFSE 3</p>
+                  <div className="space-y-1 text-sm">
+                    {weekendSaturdays > 0 && (
+                      <p className="text-slate-200">{weekendSaturdays} samedi(s) × {weekendRateSat}€ = <span className="font-bold text-purple-300">{ifse3SatTotal}€</span></p>
+                    )}
+                    {weekendSundays > 0 && (
+                      <p className="text-slate-200">{weekendSundays} dimanche(s) × {weekendRateSun}€ = <span className="font-bold text-purple-300">{ifse3SunTotal}€</span></p>
+                    )}
+                    <div className="border-t border-purple-400/30 mt-2 pt-2">
+                      <p className="text-purple-200 font-semibold">Total IFSE 3: <span className="text-lg">{ifse3Total}€/mois</span></p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {weekendSaturdays === 0 && weekendSundays === 0 && (
+            <div className="p-3 bg-slate-700/50 border border-slate-600/30 rounded-lg text-center">
+              <p className="text-xs text-slate-400">Pas de primes week-end sélectionnées</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ÉTAPE 5: RÉSULTAT FINAL */}
+      {selectedFunction && (
+        <div className={`transition-all duration-300 ${currentStep === 5 ? 'ring-2 ring-green-400/50' : ''} bg-gradient-to-br from-green-900/40 via-emerald-900/40 to-teal-900/40 rounded-xl p-6 border border-green-500/40 shadow-lg`}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-                ✓
+                5
               </div>
               <div>
-                <h4 className="text-lg font-semibold text-white">Montant total</h4>
+                <h4 className="text-lg font-semibold text-white">Résumé total</h4>
                 <p className="text-xs text-slate-300">Somme de toutes vos primes</p>
               </div>
             </div>
