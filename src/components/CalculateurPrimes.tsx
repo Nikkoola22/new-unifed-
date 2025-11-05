@@ -9,7 +9,7 @@ interface CalculateurPrimesProps {
 export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [selectedFunction, setSelectedFunction] = useState('')
+  const [selectedFunctionCode, setSelectedFunctionCode] = useState('')
   const [selectedJob, setSelectedJob] = useState('')
   const [selectedDirection, setSelectedDirection] = useState('')
   const [selectedIFSE2, setSelectedIFSE2] = useState<Set<number>>(new Set())
@@ -35,10 +35,10 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
 
   // Calculs
   const ifse1Amount = useMemo(() => {
-    if (!selectedFunction) return 0
-    const item = ifse1Data.find(i => i.function === selectedFunction)
+    if (!selectedFunctionCode) return 0
+    const item = ifse1Data.find(i => i.functionCode === selectedFunctionCode && i.category === selectedCategory)
     return item?.monthlyAmount || 0
-  }, [selectedFunction])
+  }, [selectedFunctionCode, selectedCategory])
 
   const ifse2Amount = useMemo(() => {
     if (!selectedDirection || selectedIFSE2.size === 0) return 0
@@ -64,7 +64,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
 
   const isStepComplete = (step: number) => {
     if (step === 1) return selectedCategory !== ''
-    if (step === 2) return selectedFunction !== ''
+    if (step === 2) return selectedFunctionCode !== ''
     if (step === 3) return selectedDirection !== ''
     if (step === 4) return true
     if (step === 5) return true
@@ -99,10 +99,10 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
   }, [selectedCategory, currentStep])
 
   useEffect(() => {
-    if (currentStep === 2 && selectedFunction) {
+    if (currentStep === 2 && selectedFunctionCode) {
       setTimeout(() => setCurrentStep(3), 300)
     }
-  }, [selectedFunction, currentStep])
+  }, [selectedFunctionCode, currentStep])
 
   useEffect(() => {
     if (currentStep === 3 && selectedDirection) {
@@ -113,10 +113,10 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
   const progressPercent = Math.round(
     (Object.values({
       category: selectedCategory ? 1 : 0,
-      function: selectedFunction ? 1 : 0,
+      function: selectedFunctionCode ? 1 : 0,
       direction: selectedDirection ? 1 : 0,
       weekend: ifse3Total > 0 ? 1 : 0,
-      result: selectedFunction ? 1 : 0,
+      result: selectedFunctionCode ? 1 : 0,
     }).reduce((a, b) => a + b, 0) / 5) * 100
   )
 
@@ -183,7 +183,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
                 <p className="text-xs text-slate-400">Prime de base selon votre poste</p>
               </div>
             </div>
-            {selectedFunction && <CheckCircle2 className="w-5 h-5 text-green-400" />}
+            {selectedFunctionCode && <CheckCircle2 className="w-5 h-5 text-green-400" />}
           </div>
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -193,28 +193,28 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
                 <button
                   key={`${selectedCategory}-${idx}-${item.functionCode}`}
                   onClick={() => {
-                    setSelectedFunction(item.function)
+                    setSelectedFunctionCode(item.functionCode)
                     setCurrentStep(3)
                   }}
-                  className={`w-full p-4 rounded-lg text-left transition-all border ${ selectedFunction === item.function
+                  className={`w-full p-4 rounded-lg text-left transition-all border ${ selectedFunctionCode === item.functionCode
                     ? 'bg-cyan-500/80 border-cyan-400 shadow-lg ring-2 ring-cyan-300'
                     : 'bg-slate-700/40 border-slate-600/30 hover:bg-slate-700/60 hover:border-slate-500/50'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className={`font-semibold text-base ${selectedFunction === item.function ? 'text-white' : 'text-slate-200'}`}>
+                      <p className={`font-semibold text-base ${selectedFunctionCode === item.functionCode ? 'text-white' : 'text-slate-200'}`}>
                         {item.function}
                       </p>
-                      <p className={`text-xs mt-1 ${selectedFunction === item.function ? 'text-cyan-100' : 'text-slate-400'}`}>
+                      <p className={`text-xs mt-1 ${selectedFunctionCode === item.functionCode ? 'text-cyan-100' : 'text-slate-400'}`}>
                         Code: {item.functionCode}
                       </p>
                     </div>
-                    <div className={`text-right px-3 py-2 rounded-lg ${selectedFunction === item.function ? 'bg-white/20' : 'bg-slate-600/30'}`}>
-                      <p className={`text-2xl font-bold ${selectedFunction === item.function ? 'text-white' : 'text-cyan-400'}`}>
+                    <div className={`text-right px-3 py-2 rounded-lg ${selectedFunctionCode === item.functionCode ? 'bg-white/20' : 'bg-slate-600/30'}`}>
+                      <p className={`text-2xl font-bold ${selectedFunctionCode === item.functionCode ? 'text-white' : 'text-cyan-400'}`}>
                         {item.monthlyAmount}€
                       </p>
-                      <p className={`text-xs ${selectedFunction === item.function ? 'text-cyan-100' : 'text-slate-400'}`}>
+                      <p className={`text-xs ${selectedFunctionCode === item.functionCode ? 'text-cyan-100' : 'text-slate-400'}`}>
                         par mois
                       </p>
                     </div>
@@ -223,11 +223,11 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
               ))}
           </div>
 
-          {selectedFunction && (
+          {selectedFunctionCode && (
             <div className="mt-4 space-y-2">
               <div className="p-4 bg-cyan-500/20 border border-cyan-500/40 rounded-lg">
                 <p className="text-xs text-cyan-300 mb-1">✓ Fonction sélectionnée</p>
-                <p className="text-sm text-slate-200 font-medium">{selectedFunction}</p>
+                <p className="text-sm text-slate-200 font-medium">{ifse1Data.find(i => i.functionCode === selectedFunctionCode && i.category === selectedCategory)?.function}</p>
               </div>
               <div className="p-4 bg-gradient-to-r from-blue-500/30 via-cyan-500/30 to-teal-500/30 border border-cyan-500/50 rounded-lg shadow-lg">
                 <p className="text-xs text-cyan-200 mb-1">📊 Montant IFSE 1 mensuel</p>
@@ -239,8 +239,8 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
         </div>
       )}
 
-      {/* ÉTAPE 2B: MÉTIER (OPTIONNEL) */}
-      {selectedFunction && (
+            {/* ÉTAPE 2B: MÉTIER (OPTIONNEL) */}
+      {selectedFunctionCode && (
         <div className="bg-gradient-to-br from-slate-800/40 to-slate-800/30 rounded-xl p-5 border border-slate-700/40">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400/60 to-pink-400/60 flex items-center justify-center text-white text-xs font-bold">
