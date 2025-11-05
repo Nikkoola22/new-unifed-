@@ -13,6 +13,7 @@ import { franceInfoRss } from "./data/rss-data.ts"
 import AdminPanel from "./components/AdminPanel.tsx"
 import CalculateurCIA from "./components/CalculateurCIA.tsx"
 import CalculateurPrimes from "./components/CalculateurPrimes.tsx"
+import Calculateur13eme from "./components/Calculateur13eme.tsx"
 import { faqData } from "./data/FAQdata.ts"
 
 
@@ -365,14 +366,6 @@ function App() {
   const [rssItems, setRssItems] = useState<RssItem[]>([])
   const [rssLoading, setRssLoading] = useState(false)
   const [activeCalculator, setActiveCalculator] = useState<'primes' | 'cia' | '13eme' | null>(null)
-  // 13ème mois calculator state
-  const [thirteenSalary, setThirteenSalary] = useState<string>("")
-  const [thirteenMonthsWorked, setThirteenMonthsWorked] = useState<number>(12)
-  const [thirteenthResult, setThirteenthResult] = useState<any>(null)
-  const [thirteenWeeklyHours, setThirteenWeeklyHours] = useState<string>("")
-  const [thirteenAnnualHours, setThirteenAnnualHours] = useState<string>("")
-  const [thirteenContractType, setThirteenContractType] = useState<'fonc' | 'contractuel'>('fonc')
-  const [thirteenProfession, setThirteenProfession] = useState<'standard' | 'medecin'>('standard')
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   // Admin toggles for calculator visibility
   const [showIFSE, setShowIFSE] = useState(true)
@@ -909,130 +902,9 @@ Question: ${question}`
                   <CalculateurCIA onClose={() => setActiveCalculator(null)} />
                 )}
 
-                {/* 13eme mois simple placeholder */}
+                {/* 13eme mois */}
                 {activeCalculator === '13eme' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <PiggyBank className="w-6 h-6 text-green-400" />
-                      <h3 className="text-xl font-light text-white tracking-tight">Simulation 13ème mois</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Type de contrat</label>
-                        <select value={thirteenContractType} onChange={(e) => setThirteenContractType(e.target.value as any)} className="w-full px-3 py-2 rounded-lg bg-slate-700/50 text-white">
-                          <option value="fonc">Fonctionnaire / Titulaire</option>
-                          <option value="contractuel">Contractuel</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Profession</label>
-                        <select value={thirteenProfession} onChange={(e) => setThirteenProfession(e.target.value as any)} className="w-full px-3 py-2 rounded-lg bg-slate-700/50 text-white">
-                          <option value="standard">Standard</option>
-                          <option value="medecin">Médecin</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Salaire brut mensuel (€)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={thirteenSalary}
-                          onChange={(e) => setThirteenSalary(e.target.value)}
-                          placeholder="ex: 2500"
-                          className="w-full px-3 py-2 bg-slate-700/50 border border-green-500/30 rounded-lg text-white text-sm focus:border-green-400 focus:ring-2 focus:ring-green-400/20 outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Mois travaillés (0-12)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={12}
-                          value={thirteenMonthsWorked}
-                          onChange={(e) => setThirteenMonthsWorked(Math.max(0, Math.min(12, Number(e.target.value || 0))))}
-                          className="w-full px-3 py-2 bg-slate-700/50 border border-green-500/30 rounded-lg text-white text-sm focus:border-green-400 focus:ring-2 focus:ring-green-400/20 outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Heures hebdo (pour titulaires)</label>
-                        <input value={thirteenWeeklyHours} onChange={(e) => setThirteenWeeklyHours(e.target.value)} type="number" step="0.25" className="w-full px-3 py-2 rounded-lg bg-slate-700/50 text-white" placeholder="ex: 35" />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm text-slate-300 mb-1">Heures annuelles (pour contractuels)</label>
-                        <input value={thirteenAnnualHours} onChange={(e) => setThirteenAnnualHours(e.target.value)} type="number" step="1" className="w-full px-3 py-2 rounded-lg bg-slate-700/50 text-white" placeholder="ex: 600" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          const sal = parseFloat(thirteenSalary.toString().replace(',', '.')) || 0
-                          const months = Math.max(0, Math.min(12, Number(thirteenMonthsWorked || 0)))
-                          const weekly = parseFloat(thirteenWeeklyHours || '0')
-                          const annualH = parseFloat(thirteenAnnualHours || '0')
-
-                          const isContractuel = thirteenContractType === 'contractuel'
-                          const eligible = isContractuel ? (annualH >= 550) : (weekly > 17.5)
-
-                          if (!eligible) {
-                            setThirteenthResult({ eligible: false })
-                            return
-                          }
-
-                          const base = sal // 1 mois
-                          let schedule: { month: string; pct: number }[] = []
-                          if (thirteenProfession === 'medecin') {
-                            schedule = [ { month: 'Juin', pct: 0.5 }, { month: 'Novembre', pct: 0.5 }, { month: 'Décembre', pct: 0 } ]
-                          } else {
-                            schedule = [ { month: 'Juin', pct: 0.5 }, { month: 'Novembre', pct: 0.4 }, { month: 'Décembre', pct: 0.1 } ]
-                          }
-
-                          const prorata = months / 12
-                          const breakdown = schedule.map(s => ({ month: s.month, pct: s.pct, amount: +(base * s.pct * prorata).toFixed(2) }))
-                          const total = breakdown.reduce((sum, b) => sum + b.amount, 0)
-
-                          setThirteenthResult({ eligible: true, breakdown, total, prorata })
-                        }}
-                        className="px-4 py-2 bg-green-600/70 hover:bg-green-700 text-white rounded-lg shadow transition"
-                      >
-                        Calculer
-                      </button>
-                      <button
-                        onClick={() => { setThirteenSalary(''); setThirteenMonthsWorked(12); setThirteenthResult(null); setThirteenWeeklyHours(''); setThirteenAnnualHours(''); setThirteenContractType('fonc'); setThirteenProfession('standard') }}
-                        className="px-3 py-2 bg-slate-700/40 text-slate-200 rounded-lg hover:bg-slate-700/60 transition"
-                      >
-                        Réinitialiser
-                      </button>
-                    </div>
-
-                    {thirteenthResult && thirteenthResult.eligible === false && (
-                      <div className="mt-2 p-3 bg-amber-900/20 rounded-lg border border-amber-500/20 text-amber-200">Non éligible au 13ème mois selon les règles saisies (hebdo &gt; 17h30 ou contractuels ≥ 550h).</div>
-                    )}
-
-                    {thirteenthResult && thirteenthResult.eligible === true && (
-                      <div className="mt-2 p-4 bg-green-900/20 rounded-lg border border-green-500/20">
-                        <p className="text-sm text-slate-300 mb-2">Prorata appliqué: <span className="font-medium">{(thirteenthResult.prorata * 100).toFixed(0)}%</span></p>
-                        <div className="space-y-2">
-                          {thirteenthResult.breakdown.map((b: any, idx: number) => (
-                            <div key={idx} className="flex justify-between text-slate-200">
-                              <div>{b.month} ({(b.pct*100).toFixed(0)}%)</div>
-                              <div className="font-mono">{b.amount.toFixed(2)} €</div>
-                            </div>
-                          ))}
-                          <div className="border-t border-slate-600/20 pt-2 flex justify-between text-white font-medium">
-                            <div>Total estimé</div>
-                            <div className="font-mono">{thirteenthResult.total.toFixed(2)} €</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <Calculateur13eme onClose={() => setActiveCalculator(null)} />
                 )}
               </div>
             </div>
