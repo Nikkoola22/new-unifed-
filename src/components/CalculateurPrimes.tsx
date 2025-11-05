@@ -289,7 +289,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
       )}
 
       {/* ÉTAPE 3: PRIMES COMPLÉMENTAIRES (IFSE 2 & 3) */}
-      {selectedFunction && (
+      {selectedFunctionCode && (
         <div className={`transition-all duration-300 ${currentStep === 3 ? 'ring-2 ring-teal-400/50' : ''} bg-gradient-to-br from-slate-800/60 to-slate-800/40 rounded-xl p-6 border border-slate-700/50 hover:border-slate-600/50`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -374,7 +374,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
       )}
 
       {/* ÉTAPE 4: PRIMES WEEK-END (IFSE 3) */}
-      {selectedFunction && (
+      {selectedFunctionCode && (
         <div className={`transition-all duration-300 ${currentStep === 4 ? 'ring-2 ring-purple-400/50' : ''} bg-gradient-to-br from-slate-800/60 to-slate-800/40 rounded-xl p-6 border border-slate-700/50 hover:border-slate-600/50`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -543,7 +543,7 @@ export default function CalculateurPrimes({ onClose }: CalculateurPrimesProps) {
       )}
 
       {/* ÉTAPE 5: RÉSULTAT FINAL */}
-      {selectedFunction && (
+      {selectedFunctionCode && (
         <div className={`transition-all duration-300 ${currentStep === 5 ? 'ring-2 ring-green-400/50' : ''} bg-gradient-to-br from-green-900/40 via-emerald-900/40 to-teal-900/40 rounded-xl p-6 border border-green-500/40 shadow-lg`}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
