@@ -1,6 +1,6 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Phone, Mail, MapPin, ArrowRight, Send, ArrowLeft, Search, Rss, Calculator, PieChart, PiggyBank } from "lucide-react"
+import { Phone, Mail, MapPin, ArrowRight, Send, ArrowLeft, Search, Rss, Calculator, PieChart, PiggyBank, Grid3X3 } from "lucide-react"
 
 // --- IMPORTATIONS DES DONNÉES ---
 import { sommaire } from "./data/sommaire.ts"
@@ -14,6 +14,7 @@ import AdminPanel from "./components/AdminPanel.tsx"
 import CalculateurCIA from "./components/CalculateurCIA.tsx"
 import CalculateurPrimes from "./components/CalculateurPrimes.tsx"
 import Calculateur13eme from "./components/Calculateur13eme.tsx"
+import GrillesIndiciaires from "./components/GrillesIndiciaires.tsx"
 import { faqData } from "./data/FAQdata.ts"
 
 
@@ -365,7 +366,7 @@ function App() {
   const [selectedInfo, setSelectedInfo] = useState<InfoItem | null>(null)
   const [rssItems, setRssItems] = useState<RssItem[]>([])
   const [rssLoading, setRssLoading] = useState(false)
-  const [activeCalculator, setActiveCalculator] = useState<'primes' | 'cia' | '13eme' | null>(null)
+  const [activeCalculator, setActiveCalculator] = useState<'primes' | 'cia' | '13eme' | 'grilles' | null>(null)
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   // Admin toggles for calculator visibility
   const [showIFSE, setShowIFSE] = useState(true)
@@ -873,6 +874,19 @@ Question: ${question}`
                   </div>
                 </button>
               )}
+
+              <button
+                onClick={() => setActiveCalculator('grilles')}
+                className="calc-card group bg-gradient-to-br from-slate-800/70 to-purple-900/70 p-8 rounded-2xl border border-purple-500/20 hover:scale-105 transform transition shadow-lg text-left"
+              >
+                <div className="flex flex-col items-start gap-4">
+                  <div className="p-4 bg-purple-600/20 rounded-lg">
+                    <Grid3X3 className="w-12 h-12 text-purple-300" />
+                  </div>
+                  <h3 className="text-xl font-light text-white">Grilles indiciaires</h3>
+                  <p className="text-sm text-slate-300">Grilles de salaires par métier et filière</p>
+                </div>
+              </button>
             </div>
           ) : (
             <div className="w-full bg-gradient-to-br from-slate-800/95 via-blue-900/95 to-slate-800/95 backdrop-blur-md border border-blue-500/30 rounded-2xl shadow-2xl overflow-hidden">
@@ -883,8 +897,9 @@ Question: ${question}`
                     {activeCalculator === 'primes' && <Calculator className="w-6 h-6 text-blue-400" />}
                     {activeCalculator === 'cia' && <PieChart className="w-6 h-6 text-orange-400" />}
                     {activeCalculator === '13eme' && <PiggyBank className="w-6 h-6 text-green-400" />}
+                    {activeCalculator === 'grilles' && <Grid3X3 className="w-6 h-6 text-purple-400" />}
                     <h3 className="text-lg font-semibold text-white">
-                      {activeCalculator === 'primes' ? 'Primes IFSE' : activeCalculator === 'cia' ? 'CIA' : '13ème mois'}
+                      {activeCalculator === 'primes' ? 'Primes IFSE' : activeCalculator === 'cia' ? 'CIA' : activeCalculator === '13eme' ? '13ème mois' : 'Grilles indiciaires'}
                     </h3>
                   </div>
                 </div>
@@ -905,6 +920,11 @@ Question: ${question}`
                 {/* 13eme mois */}
                 {activeCalculator === '13eme' && (
                   <Calculateur13eme onClose={() => setActiveCalculator(null)} />
+                )}
+
+                {/* Grilles indiciaires */}
+                {activeCalculator === 'grilles' && (
+                  <GrillesIndiciaires onClose={() => setActiveCalculator(null)} />
                 )}
               </div>
             </div>
