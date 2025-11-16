@@ -91,18 +91,29 @@ const trouverContextePertinentAvecIA = async (question: string): Promise<string>
     return `[#${ch.idContenu}] ${ch.titre}\nMots-clés: ${keywords.join(', ').slice(0, 300)}`
   }).join('\n\n')
 
-  const promptIA = `Tu es un assistant et tu DOIS tolérer les fautes d'orthographe/grammaire et les abréviations.
-Analyse la question et choisis le chapitre interne le plus pertinent.
+  const promptIA = `Tu es un assistant EXPERT en routage de questions vers des chapitres spécialisés.
+Tu DOIS tolérer les fautes d'orthographe/grammaire/accents et les abréviations.
 
-QUESTION: "${question}"
+QUESTION À ANALYSER: "${question}"
 
-LISTE DES CHAPITRES:
+LISTE DES CHAPITRES DISPONIBLES:
 ${indexChapitres}
 
-Règles:
-- Tolérance maximale aux fautes (corrige mentalement les mots)
-- Ne fais pas d'inférence externe, base-toi sur les titres/mots-clés
-- Réponds UNIQUEMENT par l'identifiant numérique après # (ex: 5), rien d'autre.`
+INSTRUCTIONS CRITIQUES DE DISTINCTION:
+- Chapitre 1 (Temps): Questions sur horaires, durées légales, 37h/38h, repos hebdo, astreintes, sujétions
+- Chapitre 2 (Congés): Questions sur congés annuels, RTT, CET, dons de jours, naissances
+- Chapitre 3 (Absences): Questions sur autorisations d'absence, fêtes religieuses, garde enfant malade, proche aidant
+- Chapitre 4 (Maladies): Questions sur arrêt maladie, accidents du travail, ALM, maladies professionnelles
+- Chapitre 5 (Formation): Questions sur formation, CPF, stages, qualifications, professionnalisation
+- Chapitre 6 (Télétravail): Questions sur télétravail, domicile, distance, forfait (15 jours), bien-être, flexibilité
+
+PROCESSUS DE ROUTAGE:
+1. Identifie les mots-clés principaux de la question
+2. Compare avec les mots-clés de CHAQUE chapitre
+3. Choisis le chapitre avec la meilleure correspondance
+4. En cas d'ambiguïté (ex: "forfait"), utilise le contexte (télétravail → ch6, sinon → ch2)
+
+Réponds UNIQUEMENT avec le numéro du chapitre (1-6), rien d'autre.`
 
   try {
     const response = await fetch(BACKEND_API_URL, {
@@ -111,7 +122,7 @@ Règles:
       body: JSON.stringify({
         model: "sonar-pro",
         messages: [ { role: "user", content: promptIA } ],
-        max_tokens: 8,
+        max_tokens: 1,
         temperature: 0.0,
       }),
     })
@@ -144,6 +155,11 @@ Règles:
 
   // Fallback tolérant: matching flou question ↔ mots-clés de tous les chapitres
   const q = normaliserFaute(question)
+  
+  // Détection de contexte: est-ce un forfait télétravail ?
+  const hasTeletravailKeywords = /(télétravail|domicile|distance|travail.*distance)/.test(question.toLowerCase())
+  const hasGeneralForfaitKeywords = /(forfait|jours)/i.test(question.toLowerCase())
+  
   let meilleur: { id: number; titre: string; score: number } | null = null
   for (const ch of sommaireData.chapitres as any[]) {
     const mots = [
@@ -151,6 +167,16 @@ Règles:
       ...(ch.articles?.flatMap((a: any) => a.mots_cles || []) || [])
     ]
     let score = 0
+    
+    // Bonus si le contexte correspond (télétravail)
+    if (hasTeletravailKeywords && ch.source === "teletravail") {
+      score += 20 // Gros bonus pour télétravail
+    }
+    // Si la question mentionne juste "forfait" sans télétravail, préférer télétravail (15 jours)
+    if (hasGeneralForfaitKeywords && !hasTeletravailKeywords && ch.source === "teletravail") {
+      score += 10 // Bonus modéré
+    }
+    
     for (const mc of mots) {
       const nmc = normaliserFaute(mc)
       if (!nmc) continue
