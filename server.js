@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { parseStringPromise } from 'xml2js';
 
 dotenv.config();
 
@@ -33,7 +34,11 @@ app.post('/api/completions', async (req, res) => {
   console.log('📝 Requête reçue:', JSON.stringify(req.body, null, 2));
   
   try {
-    const fetch = (await import('node-fetch')).default;
+    // Vérifier que PERPLEXITY_API_KEY existe
+    if (!process.env.PERPLEXITY_API_KEY) {
+      console.error("❌ PERPLEXITY_API_KEY non définie dans .env");
+      return res.status(500).json({ error: "Configuration manquante", details: "PERPLEXITY_API_KEY non configurée" });
+    }
     
     // Modifier la requête pour limiter les recherches externes
     const modifiedBody = {
@@ -41,8 +46,8 @@ app.post('/api/completions', async (req, res) => {
       // Paramètres pour limiter les recherches web
       return_images: false,
       return_related_questions: false,
-      max_tokens: 1000,
-      temperature: 0.0 // Température très basse pour limiter la créativité
+      max_tokens: req.body.max_tokens || 1000,
+      temperature: req.body.temperature !== undefined ? req.body.temperature : 0.0
     };
     
     console.log('🚀 Envoi vers Perplexity:', JSON.stringify(modifiedBody, null, 2));
@@ -67,7 +72,7 @@ app.post('/api/completions', async (req, res) => {
     if (!response.ok) {
       const text = await response.text();
       console.error('❌ Erreur Perplexity:', text);
-      return res.status(response.status).send(text);
+      return res.status(response.status).json({ error: "Erreur API Perplexity", details: text });
     }
 
     const data = await response.json();
@@ -80,7 +85,7 @@ app.post('/api/completions', async (req, res) => {
       console.error("⏱️ Timeout: Requête Perplexity dépassée (30s)");
       return res.status(504).json({ error: "Timeout", details: "La requête a dépassé le délai limite de 30 secondes" });
     }
-    console.error("💥 Erreur serveur:", error);
+    console.error("💥 Erreur serveur:", error.message);
     res.status(500).json({ error: "Erreur serveur", details: error.message });
   }
 });
@@ -88,31 +93,29 @@ app.post('/api/completions', async (req, res) => {
 // Route pour récupérer les flux RSS (évite les problèmes CORS)
 app.get('/api/rss', async (req, res) => {
   try {
-    const fetch = (await import('node-fetch')).default;
-    const { Parser } = await import('xml2js');
-    const parser = new Parser();
-    
     const rssUrl = "https://www.franceinfo.fr/politique.rss";
     
     console.log(`📡 Récupération du flux RSS: ${rssUrl}`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
     const response = await fetch(rssUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
       signal: controller.signal
     });
+    
     clearTimeout(timeoutId);
     
     if (!response.ok) {
       console.error(`❌ Erreur fetch RSS (${response.status}):`, response.statusText);
-      return res.status(response.status).json({ error: 'Erreur récupération RSS' });
+      return res.status(response.status).json({ error: 'Erreur récupération RSS', details: response.statusText });
     }
     
     const xmlText = await response.text();
-    const jsonData = await parser.parseStringPromise(xmlText);
+    const jsonData = await parseStringPromise(xmlText);
     
     // Extraction des articles
     const articles = (jsonData.rss?.channel?.[0]?.item || []).slice(0, 10).map((item) => ({
@@ -122,16 +125,19 @@ app.get('/api/rss', async (req, res) => {
     }));
     
     console.log(`✅ ${articles.length} articles RSS trouvés`);
+    
     // Empêcher tout cache côté CDN/navigateur
     res.setHeader('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
     res.status(200).json({ items: articles });
     
   } catch (error) {
-    console.error("💥 Erreur RSS:", error);
+    console.error("💥 Erreur RSS:", error.message);
+    
     // Fallback minimal pour éviter les erreurs côté client
     const fallbackItems = [
       { title: '• Actualités indisponibles pour le moment', link: '#', pubDate: new Date().toISOString() }
     ];
+    
     res.setHeader('Cache-Control', 'no-store, no-cache, max-age=0, must-revalidate');
     res.status(200).json({ items: fallbackItems, warning: 'fallback' });
   }
