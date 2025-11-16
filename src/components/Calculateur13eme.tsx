@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronRight, CheckCircle2 } from 'lucide-react'
 
 interface Calculateur13emeProps {

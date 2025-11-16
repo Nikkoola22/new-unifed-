@@ -8,7 +8,6 @@ import { chapitres } from "./data/temps.ts"
 import { formation } from "./data/formation.ts"
 import { teletravailData } from "./data/teletravail.ts"
 import { infoItems } from "./data/info-data.ts"
-import { ifse1Data, ifse2Data, getAllDirections, getIFSE2ByDirection, getDirectionFullName } from "./data/rifseep-data.ts"
 import { franceInfoRss } from "./data/rss-data.ts"
 import AdminPanel from "./components/AdminPanel.tsx"
 import CalculateurCIA from "./components/CalculateurCIA.tsx"
@@ -48,135 +47,6 @@ interface ChatbotState {
 
 // --- PARSING DES DONNÉES ---
 const sommaireData = typeof sommaire === 'string' ? JSON.parse(sommaire) : sommaire
-
-// --- FONCTION DE NETTOYAGE ---
-const nettoyerChaine = (chaine: string): string => {
-  if (typeof chaine !== "string") return ""
-  return chaine
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/gi, "")
-    .trim()
-}
-
-// --- DICTIONNAIRE DE SYNONYMES ---
-const synonymes: Record<string, string[]> = {
-  "forfait": ["forfait annuel", "jours forfait", "15 jours", "quota annuel", "droit jours", "combien jours"],
-  "teletravail": ["télétravail", "travail distance", "domicile", "remote"],
-  "conge": ["congés", "vacances", "absence", "cp", "autorisation absence"],
-  "formation": ["stage", "cours", "cpf", "qualification"],
-  "horaire": ["horaires", "temps travail", "planning", "heures"],
-  "mariage": ["mariage", "pacs", "wedding", "union", "époux", "épouse"],
-  "naissance": ["naissance", "accouchement", "enfant", "bébé", "nouveau né"],
-  "deuil": ["deuil", "décès", "enterrement", "obsèques", "funérailles"],
-  "rtt": ["RTT", "artt", "temps repo", "jours repos"],
-  "astreinte": ["astreinte", "permanence", "garde", "nuit"],
-  "maladie": ["maladie", "arrêt maladie", "CLM", "CLD"],
-  "cet": ["cet", "compte épargne temps", "épargne", "compte repos"],
-  "journee_solidarite": ["journée solidarité", "jour solidarité", "jour supplémentaire"],
-  "temps partiel": ["temps partiel", "quotité", "pourcentage"]
-}
-
-// --- FONCTION D'EXPANSION DES SYNONYMES ---
-const expandirAvecSynonymes = (terme: string): string[] => {
-  const termeNettoye = nettoyerChaine(terme)
-  const resultats = [termeNettoye]
-  
-  for (const [motCle, syns] of Object.entries(synonymes)) {
-    if (termeNettoye.includes(motCle) || syns.some(syn => termeNettoye.includes(nettoyerChaine(syn)))) {
-      resultats.push(motCle, ...syns.map(nettoyerChaine))
-    }
-  }
-  
-  return [...new Set(resultats)]
-}
-
-// --- FONCTION DE RECHERCHE DE BASE (sans IA) ---
-const trouverContextePertinentBase = (question: string): Array<{ id: number; score: number; titre: string; contenu: string | null }> => {
-  const questionNettoyee = nettoyerChaine(question)
-  const motsQuestionNettoyes = questionNettoyee.split(/\s+/).filter((mot) => mot.length > 0)
-  
-  // Expansion avec synonymes
-  const motsFinalAvecSynonymes = new Set<string>()
-  motsQuestionNettoyes.forEach(mot => {
-    const syns = expandirAvecSynonymes(mot)
-    syns.forEach(syn => motsFinalAvecSynonymes.add(syn))
-  })
-  
-  const chapitresTrouves = new Map<number, { score: number }>()
-
-  sommaireData.chapitres.forEach((chapitreItem: any, index: number) => {
-    let score = 0
-    
-    const chapitreId = chapitreItem.idContenu || (index + 1)
-
-    const motsClesChapitre = chapitreItem.mots_cles || []
-    const motsClesArticles = (chapitreItem.articles || []).flatMap((article: any) => article.mots_cles || [])
-    const tousLesMotsCles = [...motsClesChapitre, ...motsClesArticles]
-
-    tousLesMotsCles.forEach((motCle: string) => {
-      const motCleNettoye = nettoyerChaine(motCle)
-      if (!motCleNettoye) return
-
-      // Recherche exacte (priorité absolue)
-      if (motsFinalAvecSynonymes.has(motCleNettoye)) {
-        score += 10
-      } 
-      // Recherche si mot clé contient un mot de la question
-      else if (questionNettoyee.includes(motCleNettoye)) {
-        score += 5
-      } 
-      // Recherche partielle
-      else {
-        for (const motQuestion of motsFinalAvecSynonymes) {
-          if (motCleNettoye.includes(motQuestion) || motQuestion.includes(motCleNettoye)) {
-            score += 2
-            break
-          }
-        }
-      }
-    })
-
-    // BONUS: Si "forfait" est dans la question et le chapitre est télétravail, bonus +50
-    if ((questionNettoyee.includes("forfait") || motsFinalAvecSynonymes.has("forfait")) && chapitreItem.source === "teletravail") {
-      score += 50
-    }
-
-    if (score > 0) {
-      const chapitreExistant = chapitresTrouves.get(chapitreId) || { score: 0 }
-      chapitreExistant.score += score
-      chapitresTrouves.set(chapitreId, chapitreExistant)
-    }
-  })
-
-  // Retourner les candidats triés avec leurs contenus
-  return Array.from(chapitresTrouves.entries())
-    .sort(([, a], [, b]) => b.score - a.score)
-    .slice(0, 3) // Prendre les 3 meilleurs candidats pour l'IA
-    .map(([id]) => {
-      const chapitreData = sommaireData.chapitres.find((ch: any) => (ch.idContenu || 0) === id)
-      if (!chapitreData) return null
-      
-      let contenuTexte = null
-      if (chapitreData.source === "teletravail") {
-        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
-      } else if (chapitreData.source === "formation") {
-        contenuTexte = formation || null
-      } else {
-        contenuTexte = (chapitres as Record<number, string>)[id] || null
-      }
-
-      const score = chapitresTrouves.get(id)?.score || 0
-      return {
-        id,
-        score,
-        titre: chapitreData.titre,
-        contenu: contenuTexte
-      }
-    })
-    .filter((item): item is { id: number; score: number; titre: string; contenu: string | null } => item !== null)
-}
 
 // --- OUTILS: Normalisation tolérante aux fautes ---
 const normaliserFaute = (s: string): string => {
@@ -317,42 +187,7 @@ Règles:
     (sommaireData.chapitres as any[]).map((s: any) => s.titre).join(", ")
 }
 
-// --- FONCTION DE RECHERCHE (version synchrone pour compatibilité) ---
-const trouverContextePertinent = (question: string): string => {
-  // Version synchrone qui utilise la recherche de base (sans appel IA)
-  const candidats = trouverContextePertinentBase(question)
-  
-  if (candidats.length === 0) {
-    const chapitresGeneraux = sommaireData.chapitres.slice(0, 3).map((ch: any) => {
-      const id = ch.idContenu || 1
-      let contenuTexte = null
-      if (ch.source === "teletravail") {
-        contenuTexte = typeof teletravailData === 'string' ? teletravailData : JSON.stringify(teletravailData)
-      } else if (ch.source === "formation") {
-        contenuTexte = formation || null
-      } else {
-        contenuTexte = (chapitres as Record<number, string>)[id] || null
-      }
-      return contenuTexte ? `Source: ${ch.titre}\nContenu: ${contenuTexte}` : null
-    }).filter(Boolean)
-    
-    if (chapitresGeneraux.length > 0) {
-      return chapitresGeneraux.join("\n\n---\n\n")
-    }
-    
-    return (
-      "Aucun chapitre spécifique trouvé pour cette question. Voici un aperçu général des thèmes: " +
-      sommaireData.chapitres.map((s: any) => s.titre).join(", ")
-    )
-  }
-
-  const meilleurCandidat = candidats[0]
-  if (meilleurCandidat.contenu) {
-    return `Source: ${meilleurCandidat.titre}\nContenu: ${meilleurCandidat.contenu}`
-  }
-
-  return "Aucun contenu textuel trouvé pour les chapitres pertinents."
-}
+// --- LOGIQUE DU CHAT UNIFIÉ ---
 
 function App() {
   // --- ÉTATS & REFS ---

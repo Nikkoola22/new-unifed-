@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Euro, ArrowLeft, AlertCircle, CheckCircle, ChevronRight } from 'lucide-react';
+import { Euro, ArrowLeft, CheckCircle, ChevronRight } from 'lucide-react';
 
 interface CalculateurCIAProps {
   onClose: () => void;
