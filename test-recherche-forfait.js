@@ -12,6 +12,45 @@ dotenv.config();
 
 const BACKEND_API_URL = 'http://localhost:3001/api/completions';
 
+// Import sommaire comme le fait App.tsx
+import { sommaire } from './src/data/sommaire.ts';
+const sommaireData = typeof sommaire === 'string' ? JSON.parse(sommaire) : sommaire;
+
+// Fonction pour construire le prompt exactement comme l'app
+function buildRoutingPrompt(question) {
+  const indexChapitres = sommaireData.chapitres.map((ch) => {
+    const keywords = [
+      ...(ch.mots_cles || []),
+      ...(ch.articles?.flatMap((a) => a.mots_cles || []) || [])
+    ].slice(0, 12);
+    return `[#${ch.idContenu}] ${ch.titre}\nMots-clés: ${keywords.join(', ').slice(0, 300)}`;
+  }).join('\n\n');
+
+  return `Tu es un assistant EXPERT en routage de questions vers des chapitres spécialisés.
+Tu DOIS tolérer les fautes d'orthographe/grammaire/accents et les abréviations.
+
+QUESTION À ANALYSER: "${question}"
+
+LISTE DES CHAPITRES DISPONIBLES:
+${indexChapitres}
+
+INSTRUCTIONS CRITIQUES DE DISTINCTION:
+- Chapitre 1 (Temps): Questions sur horaires, durées légales, 37h/38h, repos hebdo, astreintes, sujétions
+- Chapitre 2 (Congés): Questions sur congés annuels, RTT, CET, dons de jours, naissances
+- Chapitre 3 (Absences): Questions sur autorisations d'absence, fêtes religieuses, garde enfant malade, proche aidant
+- Chapitre 4 (Maladies): Questions sur arrêt maladie, accidents du travail, ALM, maladies professionnelles
+- Chapitre 5 (Formation): Questions sur formation, CPF, stages, qualifications, professionnalisation
+- Chapitre 6 (Télétravail): Questions sur télétravail, domicile, distance, forfait (15 jours), bien-être, flexibilité
+
+PROCESSUS DE ROUTAGE:
+1. Identifie les mots-clés principaux de la question
+2. Compare avec les mots-clés de CHAQUE chapitre
+3. Choisis le chapitre avec la meilleure correspondance
+4. En cas d'ambiguïté (ex: "forfait"), utilise le contexte (télétravail → ch6, sinon → ch2)
+
+Réponds UNIQUEMENT avec le numéro du chapitre (1-6), rien d'autre.`;
+}
+
 // Test cases couvrant tous les chapitres
 const testCases = [
   // === CHAPITRE 1: TEMPS DE TRAVAIL ===
@@ -112,15 +151,17 @@ const testCases = [
   }
 ];
 
-// Appel à l'API
-async function appelPerplexity(question) {
+// Appel à l'API avec le vrai prompt
+async function testRouting(question) {
   try {
+    const prompt = buildRoutingPrompt(question);
+    
     const data = {
       model: 'sonar-pro',
       messages: [
         {
           role: 'user',
-          content: question
+          content: prompt
         }
       ],
       max_tokens: 1,
@@ -162,7 +203,7 @@ async function runTests() {
     console.log(`   📋 ${testCase.description}`);
     console.log(`   ✅ Attendu: Chapitre ${testCase.expectedChapter}`);
 
-    const result = await appelPerplexity(testCase.question);
+    const result = await testRouting(testCase.question);
 
     if (!result) {
       console.log('   ❌ Pas de réponse');
