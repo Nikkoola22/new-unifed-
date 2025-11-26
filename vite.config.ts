@@ -12,7 +12,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  base: '/new-unifed-/',
+  base: '/',
   server: {
     proxy: {
       '/api': {
